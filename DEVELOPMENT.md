@@ -1,8 +1,8 @@
-# nano-vllm 开发文档
+# nano-vllm-lite 开发文档
 
 ## 项目概述
 
-nano-vllm 是一个轻量级高性能 LLM 推理引擎，在约 3900 行 Python + CUDA 代码中实现了企业级推理优化。项目设计对标 vLLM，以最小代码量覆盖核心优化技术。
+nano-vllm-lite 启发于nano-vllm，是一个轻量级高性能 LLM 推理引擎，在约 3900 行 Python + CUDA 代码中实现了企业级推理优化。项目设计对标 vLLM，以最小代码量覆盖核心优化技术。
 
 ### 核心特性
 
