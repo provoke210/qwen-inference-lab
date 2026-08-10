@@ -1,4 +1,4 @@
-# nano-vllm-lite
+# README.md
 
 A lightweight high-performance LLM inference engine (~3900 lines of Python + CUDA) implementing enterprise-grade optimizations from scratch.
 
