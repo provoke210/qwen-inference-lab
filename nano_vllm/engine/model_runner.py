@@ -267,7 +267,9 @@ class ModelRunner:
         for seq in seqs:
             input_ids.append(seq.last_token)
             positions.append(seq.num_tokens - 1)
-            context_lens.append(seq.num_tokens - 1)
+            # Attention.forward writes the current token's KV before reading
+            # the cache, so the valid length must include that token.
+            context_lens.append(seq.num_tokens)
             last_block_idx = len(seq.block_table) - 1
             last_offset = (seq.num_tokens - 1) % self.config.kvcache_block_size
             slot = seq.block_table[last_block_idx] * self.config.kvcache_block_size + last_offset
@@ -330,6 +332,11 @@ class ModelRunner:
 
         # 将输入拷贝到 graph 的 static tensor 中（地址固定，graph 可识别）
         gv = self.graph_vars[graph_bs]
+        # A reused graph may contain metadata from a larger previous batch.
+        # Padding lanes must never write into a real request's KV slots.
+        gv["slot_mapping"].fill_(-1)
+        gv["context_lens"].fill_(1)
+        gv["block_tables"].zero_()
         gv["input_ids"][:batch_size].copy_(self.input_ids)
         gv["positions"][:batch_size].copy_(self.positions)
         gv["slot_mapping"][:batch_size].copy_(self.decode_slot_mapping)
@@ -381,6 +388,7 @@ class ModelRunner:
 
     # ======================== CUDA Graph ========================
 
+    @inference_mode()
     def capture_cudagraph(self):
         """捕获 Decode 阶段的 CUDA Graph
 
@@ -407,7 +415,7 @@ class ModelRunner:
             self.graph_vars[graph_bs] = {
                 "input_ids": torch.zeros(graph_bs, dtype=torch.long, device="cuda"),
                 "positions": torch.zeros(graph_bs, dtype=torch.long, device="cuda"),
-                "slot_mapping": torch.zeros(graph_bs, dtype=torch.int32, device="cuda"),
+                "slot_mapping": torch.full((graph_bs,), -1, dtype=torch.int32, device="cuda"),
                 "context_lens": torch.ones(graph_bs, dtype=torch.int32, device="cuda"),
                 "block_tables": torch.zeros(graph_bs, max_blocks_per_seq, dtype=torch.int32, device="cuda"),
             }
