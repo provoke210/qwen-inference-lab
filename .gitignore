@@ -13,3 +13,8 @@ build/
 *.png
 benchmark_results.json
 .triton/
+.venv/
+.DS_Store
+model_weights/
+*.safetensors
+.pytest_cache/

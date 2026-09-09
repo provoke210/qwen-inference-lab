@@ -47,6 +47,10 @@ class Config:
     enable_chunked_prefill: bool = True
     enable_fp8_kvcache: bool = True
     enable_prefix_caching: bool = True
+    enable_adaptive_prefill: bool = True
+    min_prefill_tokens: int = 64
+    prefill_wait_steps: int = 8
+    kv_pressure_threshold: float = 0.85
 
     # ======================== 内部状态（自动填充） ========================
     hf_config: AutoConfig | None = field(default=None, repr=False)

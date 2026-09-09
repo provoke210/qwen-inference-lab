@@ -12,8 +12,11 @@ engine/scheduler.py - 混合调度器（Chunked Prefill + Continuous Batching）
 """
 
 from collections import deque
+from typing import TYPE_CHECKING
 
-from nano_vllm.config import Config
+if TYPE_CHECKING:
+    from nano_vllm.config import Config
+from nano_vllm.engine.prefill_policy import PrefillPolicy
 from nano_vllm.engine.sequence import Sequence, SequenceStatus
 from nano_vllm.engine.block_manager import BlockManager
 
@@ -29,7 +32,7 @@ class Scheduler:
         config: 引擎配置
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: "Config"):
         self.max_num_seqs = config.max_num_seqs
         self.max_num_batched_tokens = config.max_num_batched_tokens
         self.eos = config.eos
@@ -43,6 +46,15 @@ class Scheduler:
         )
         self.waiting: deque[Sequence] = deque()
         self.running: deque[Sequence] = deque()
+        if min(self.max_num_seqs, self.max_num_batched_tokens, config.num_kvcache_blocks) < 1:
+            raise ValueError("sequence, token and KV block budgets must be positive")
+        self.policy = PrefillPolicy(
+            self.chunk_size, config.min_prefill_tokens, config.prefill_wait_steps,
+            config.kv_pressure_threshold, config.enable_adaptive_prefill,
+        )
+        self.step = 0
+        self.wait_since = {}
+        self.last_schedule = {}
 
     def is_finished(self) -> bool:
         """所有序列是否都已处理完毕"""
@@ -54,7 +66,10 @@ class Scheduler:
         Args:
             seq: 新到达的序列
         """
+        if seq.num_blocks > len(self.block_manager.blocks):
+            raise ValueError("request exceeds total KV block capacity")
         self.waiting.append(seq)
+        self.wait_since[seq.seq_id] = self.step
 
     def schedule(self) -> tuple[list[Sequence], bool]:
         """执行一步调度，返回本步要处理的序列列表
@@ -71,7 +86,7 @@ class Scheduler:
         else:
             return self._schedule_traditional()
 
-    def _schedule_chunked(self) -> tuple[list[Sequence], bool]:
+    def _schedule_chunked(self, allow_reservation=True) -> tuple[list[Sequence], bool]:
         """Chunked Prefill 混合调度（Sarathi 风格）
 
         Phase 1: 优先调度所有可运行的 Decode 序列
@@ -79,13 +94,22 @@ class Scheduler:
         """
         scheduled_seqs = []
         num_batched_tokens = 0
+        self.step += 1
+        aged = allow_reservation and self.policy.adaptive and any(
+            self.step - self.wait_since.get(s.seq_id, self.step) >= self.policy.wait_steps
+            for s in self.waiting
+        )
+        # Reserve both a request slot and tokens. Memory availability is still required.
+        reserve = min(self.policy.min_tokens, self.chunk_size, self.max_num_batched_tokens) if aged else 0
+        decode_limit = self.max_num_batched_tokens - reserve
+        seq_limit = self.max_num_seqs - int(aged)
 
         # Phase 1: 优先调度 Decode 序列
         running_seqs = deque(self.running)
         self.running.clear()
         while running_seqs:
             seq = running_seqs.popleft()
-            if len(scheduled_seqs) >= self.max_num_seqs:
+            if len(scheduled_seqs) >= seq_limit or num_batched_tokens >= decode_limit:
                 self.running.append(seq)
                 continue
             while not self.block_manager.can_append(seq):
@@ -103,28 +127,53 @@ class Scheduler:
                 self.running.append(seq)
 
         # Phase 2: Chunked Prefill（固定大小分块）
-        prefill_budget = self.chunk_size
+        pressure = len(self.block_manager.used_block_ids) / len(self.block_manager.blocks)
+        prefill_budget = self.policy.budget(
+            self.max_num_batched_tokens - num_batched_tokens,
+            len(scheduled_seqs), self.max_num_seqs, pressure, aged,
+        )
+        initial_budget = prefill_budget
+        # Oldest unserved prefill first; inspect each waiting request at most once.
+        self.waiting = deque(sorted(self.waiting, key=lambda s: self.wait_since.get(s.seq_id, self.step)))
+        candidates = len(self.waiting)
 
-        while self.waiting and len(scheduled_seqs) < self.max_num_seqs and prefill_budget > 0:
+        while self.waiting and candidates and len(scheduled_seqs) < self.max_num_seqs and prefill_budget > 0:
+            candidates -= 1
             seq = self.waiting[0]
             if not seq.block_table:
                 num_cached_blocks = self.block_manager.can_allocate(seq)
                 if num_cached_blocks == -1:
-                    break
+                    self.waiting.rotate(-1)
+                    continue
                 self.block_manager.allocate(seq, num_cached_blocks)
                 uncomputed_tokens = seq.num_tokens - num_cached_blocks * self.block_size
             else:
                 uncomputed_tokens = seq.num_tokens - seq.num_cached_tokens
             seq.num_scheduled_tokens = min(uncomputed_tokens, prefill_budget)
+            seq.is_prefill = True
             prefill_budget -= seq.num_scheduled_tokens
             num_batched_tokens += seq.num_scheduled_tokens
             if seq.num_cached_tokens + seq.num_scheduled_tokens == seq.num_tokens:
                 seq.status = SequenceStatus.RUNNING
                 self.waiting.popleft()
                 self.running.append(seq)
+                self.wait_since.pop(seq.seq_id, None)
+            else:
+                self.wait_since[seq.seq_id] = self.step
+                self.waiting.rotate(-1)
             scheduled_seqs.append(seq)
 
         has_prefill = any(seq.is_prefill for seq in scheduled_seqs)
+        self.last_schedule = dict(step=self.step, tokens=num_batched_tokens,
+                                  prefill_budget=initial_budget, kv_pressure=pressure,
+                                  aged_reservation=bool(aged))
+        if not scheduled_seqs and self.running and aged:
+            # Admission failed under memory pressure; release reservation next round.
+            for seq in self.waiting:
+                self.wait_since[seq.seq_id] = self.step
+            return self._schedule_chunked(allow_reservation=False)
+        if not scheduled_seqs and not self.is_finished():
+            raise RuntimeError("scheduler cannot make progress within KV capacity")
         return scheduled_seqs, has_prefill
 
     def _schedule_traditional(self) -> tuple[list[Sequence], bool]:
@@ -164,7 +213,7 @@ class Scheduler:
             return scheduled_seqs, True
 
         # Decode phase
-        while self.running and len(scheduled_seqs) < self.max_num_seqs:
+        while self.running and len(scheduled_seqs) < min(self.max_num_seqs, self.max_num_batched_tokens):
             seq = self.running.popleft()
             while not self.block_manager.can_append(seq):
                 if self.running:
@@ -193,6 +242,7 @@ class Scheduler:
         seq.is_prefill = True
         self.block_manager.deallocate(seq)
         self.waiting.appendleft(seq)
+        self.wait_since.setdefault(seq.seq_id, self.step)
 
     def postprocess(self, seqs: list[Sequence], token_ids: list[int]):
         """后处理：更新序列状态、注册前缀缓存、检查终止条件
