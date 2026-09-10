@@ -1,83 +1,93 @@
-# Qwen Inference Lab
+# Qwen Inference Lab — 独立推理核心
 
-面向长短请求混合负载的轻量 Qwen 推理引擎实验项目。
-研究在有限 Token 预算和 KV Cache 容量下，如何平衡 Prefill 推进速度与 Decode 调度机会。
+`qil` 是从请求状态、分页 KV 缓存、调度循环到模型前向重新实现的单设备推理引擎。
+当前支持 Qwen3 稠密文本模型，使用 PyTorch 张量算子与 SDPA；运行时不依赖 nano-vLLM、
+nano-vllm-lite、vLLM、Triton 或 FlashAttention 扩展。
 
-## 本项目新增实现
+这是推理引擎的从零实现，不是从零训练模型，也不宣称模型架构或标准算子算法为原创。
+Qwen3 模型结构按官方配置实现，Transformers 用于测试参考；输入文本时可选用它的 tokenizer。
 
-- 自适应 Prefill 预算：根据本轮 Decode 占比调整分块预算；KV 块使用率超过阈值时进一步缩小预算。
-- 等待轮次保护：Prefill 长时间未获得调度时，预留一个序列槽位及少量 Token 预算。
-- 严格总预算：固定与自适应模式均限制每轮 Token 总数及序列数，可做消融比较。
-- 缓存压力处理：跳过暂时无法分配的请求；预留失败时允许 Decode 推进释放资源。
-- CPU 测试入口：调度与缓存测试无需安装 PyTorch、Transformers、Triton 或 CUDA。
+## 已实现
 
-这些是待 GPU 评测的工程策略，不代表已证明优于固定分块或 vLLM。
+- 独立 Qwen3 前向：GQA、Q/K RMSNorm、绝对位置 RoPE、因果注意力、SiLU 门控 MLP。
+- SafeTensors 分片加载与严格权重检查，支持共享/独立 LM Head，拒绝遗漏、未知或尺寸不符的权重。
+- 分页 KV 存储：独立请求所有权、按实际计算进度增加页面、释放和复用、禁止读取未写入位置。
+- 独立请求与轮转调度：统一 token 预算、分块 Prefill、运行间接入新请求、EOS/长度停止、取消与异常回收。
+- `step()` 返回逐 token 事件；请求结果记录 TTFT、完成时间和平均 token 间隔。
+- 包只包含 `qil`；不会编译或安装旧代码的 CUDA 扩展。
 
-## GPU 验证与原始结果（2026-09-09）
+## 安装与运行
 
-已完成 Qwen3-0.6B 推理修复、CUDA Graph 冒烟验证和与 vLLM 0.10.2 的四组离线对照。
-GPU 回归测试 23 项通过。四组对照中三组吞吐量更高，512-token 输入、批量 4 时更低；结论仅限本次配置。
-
-- [对照方法、结果与复现命令](docs/vllm-comparison-2026-09-09.md)
-- [GPU 修复与验证记录](docs/gpu-smoke-2026-09-09.md)
-- [原始 JSON 结果](benchmarks/results/2026-09-09/)
-
-## CPU 开发与测试
-
-Python 3.10+，在项目根目录执行：
+Python 3.10+。CPU 或 NVIDIA CUDA 上使用相应 PyTorch 安装版本；已完成 CPU 单元测试与单卡 CUDA Float32 正确性冒烟验证。
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-test.txt
-python -m pytest tests -q
+python -m pip install -e '.[text,test]'
+python -m pytest
+python -m qil --model /path/to/Qwen3-0.6B --prompt 'The capital of France is' \
+  --device cuda --dtype float32 --max-new-tokens 16
 ```
 
-Mac 支持以上测试。模型推理仍需 Linux/WSL2 NVIDIA CUDA 环境。
-不要为 CPU 测试执行 `pip install -e .`，其安装过程含 GPU 依赖。
+模型需要事先下载到本地。也可以仅安装核心依赖并传入 token IDs，完全不需要 Transformers：
 
-## GPU 配置示例
+```bash
+python -m pip install -e .
+python -m qil --model /path/to/Qwen3-0.6B --token-ids '[1,2,3]' \
+  --device cpu --max-new-tokens 8
+```
 
-需要完成 CUDA 环境安装和模型下载，尚未在本地 Mac 验证：
+编程接口：
 
 ```python
-from nano_vllm import LLM, SamplingParams
+from qil import Engine, Qwen3
 
-llm = LLM(
-    model="/path/to/Qwen3-0.6B",
-    tensor_parallel_size=1,
-    enable_fp8_kvcache=False,
-    enable_chunked_prefill=True,
-    enable_adaptive_prefill=True,
-    max_num_batched_tokens=1024,
-    chunk_size=512,
-    min_prefill_tokens=64,
-    prefill_wait_steps=8,
-    kv_pressure_threshold=0.85,
-)
-outputs = llm.generate(["介绍一下 KV Cache。"], SamplingParams(max_tokens=128))
+model = Qwen3.from_directory('/path/to/model', device='cpu')
+engine = Engine(model, num_pages=256, page_size=16,
+                token_budget=128, prefill_chunk=64, max_active=4)
+request_id = engine.submit([1, 2, 3], max_new_tokens=8)
+while not engine.idle:
+    for event in engine.step():
+        print(event)
+print(engine.result(request_id))
+engine.close()
 ```
 
-设置 `enable_adaptive_prefill=False` 对比严格预算下的固定分块策略。
-目前采样器仅支持正温度随机采样；贪心正确性对照需要另行实现。
+`submit()` 接收 token IDs。`step()` 是同步调用；可以在两步之间接入/取消请求。
+`generate()` 提供空闲引擎上的批量便捷接口，返回每条请求的结果。
+缓存使用显式页面数控制，不自动按总显存比例分配。容量不足的单条请求会被拒绝。
 
-## 关键代码
+## 验证与边界
 
-| 模块 | 作用 |
-|---|---|
-| `nano_vllm/engine/prefill_policy.py` | 可独立测试的预算策略 |
-| `nano_vllm/engine/scheduler.py` | 请求选择、预算约束与缓存压力处理 |
-| `nano_vllm/engine/block_manager.py` | 分页缓存和前缀复用 |
-| `nano_vllm/engine/model_runner.py` | GPU 执行、输入准备、CUDA Graph |
-| `tests/test_scheduler.py` | 调度边界和生命周期测试 |
+独立核心 **30 项测试通过**；包括历史实现的全仓测试 **74 项通过、1 个 CUDA 测试模块跳过**。
+使用随机初始化的小型 Qwen3 与 Transformers 4.55.2 对照，验证全 Prefill、逐 token、
+不规则分块 logits 和混合长度贪心生成。另用安装后的 wheel 在禁止导入旧引擎及 Transformers
+的独立进程中完成推理，与参考 token 序列一致。[本地原始验证记录](benchmarks/results/2026-09-09/independent_cpu.json)。
 
-## 实验边界
+**已完成真实 Qwen3-0.6B 单卡 Float32 正确性验证，尚无性能提升结论。**
+在 RTX 4080 SUPER 上，5/198-token 两条输入分别采用 1/32-token 分块，各生成 8 个 token，
+四组输出均与 Transformers 完全一致。短输入最后位置 logits 最大绝对误差为 1.72e-5，
+缓存回收断言通过。[GPU 原始结果](benchmarks/results/2026-09-09/independent_gpu.json)。
 
-- 等待保护按调度轮次计量，不是毫秒 SLA；缓存不可分配时不能保证等待上限。
-- 缓存管理仍为 Prompt 整体预留块；不是按 Chunk 增量分配。
-- 缓存压力是已使用块比例，不等同于 CUDA 总显存占用。
-- 混合调度可能进入不同算子路径，实际延迟必须通过 GPU 对照验证。
-- GPU 正确性、吞吐和 vLLM 对标尚未完成，不引用参考项目成绩。
+另已完成与 **vLLM 0.10.2 的 FP32 eager 对比**：四类回答及性能负载的 30 条生成序列
+均逐 token 一致。当前独立核心约 26–29 输出 tokens/s；vLLM 单请求快 1.4–1.8 倍，
+四请求总吞吐约为独立核心的 5 倍。这不是 vLLM 默认最佳性能测试。
+详见[独立核心 vLLM 对比报告](docs/independent-vllm-comparison-2026-09-09.md)。
 
-详见 [策略设计](docs/ADAPTIVE_SCHEDULING.md)、[开发计划](docs/ROADMAP.md)
-和 [来源与贡献记录](docs/PROVENANCE.md)。
+当前每个请求块逐个执行模型，尚无跨请求 GPU 合批；分页 KV 会 gather 为连续张量交给 SDPA，
+尚无原生 paged-attention kernel、CUDA Graph、前缀缓存、量化、多卡、MoE 或多模态。
+接入时按最大上下文预留容量额度以防死锁，吞吐和显存利用率会比较保守。
+
+现有服务器上的正确性验证入口：
+
+```bash
+python -m benchmarks.validate_independent --model /path/to/Qwen3-0.6B \
+  --device cuda --dtype float32 --output /tmp/independent_gpu.json
+```
+
+详见 [独立核心设计与验收](docs/INDEPENDENT_CORE.md)。
+
+## 历史实现
+
+`nano_vllm/`、原调度实验和此前的 vLLM 对照结果保留为历史资料，不打入新 wheel，
+不属于新核心的依赖或性能证据。原安装脚本保存在 `docs/UPSTREAM_SETUP.py`。
+此前项目入口保存在 [历史 README](docs/LEGACY_PROJECT_README.md)，来源记录见
+[PROVENANCE](docs/PROVENANCE.md)。

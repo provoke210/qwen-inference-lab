@@ -1,0 +1,56 @@
+{
+  "scope": "CPU float32 tiny randomly initialized Qwen3; not trained 0.6B or GPU validation",
+  "python": "3.12.14",
+  "torch": "2.8.0",
+  "seed": 20260909,
+  "installed_package": "/tmp/qil-standalone-install/qil/__init__.py",
+  "forbidden_imports": [
+    "nano_vllm",
+    "nanovllm",
+    "vllm",
+    "transformers",
+    "triton",
+    "flash_attn"
+  ],
+  "reference_tokens": [
+    3,
+    3,
+    3,
+    3
+  ],
+  "actual": {
+    "request_id": 0,
+    "state": "completed",
+    "finish_reason": "length",
+    "error": null,
+    "token_ids": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "token_times_s": [
+      0.0035377080785110593,
+      0.0039617500733584166,
+      0.004272792022675276,
+      0.004595500067807734
+    ],
+    "ttft_s": 0.0035377080785110593,
+    "e2e_s": 0.004595500067807734,
+    "tpot_s": 0.00035259732976555824
+  },
+  "tokens_match": true,
+  "pages_released": true,
+  "new_core_tests_passed": 30,
+  "all_tests_passed": 74,
+  "cuda_test_modules_skipped": 1,
+  "source_sha256": {
+    "qil/__init__.py": "15053195e4cc5ccdfd2c2787a40e8907ebcc32d372c2533047d94eea4d9d525a",
+    "qil/__main__.py": "44db38aff1a9ce013d70a38b3fa8d9bd64b73d7268f5fef4d5ababd9f6467cf5",
+    "qil/cache.py": "931082d4bbf8a68e9b0776528195ad10c29b033fa78e29f61c03b1b4ff34a342",
+    "qil/config.py": "6d67eb60edbf26f0c593daea0c7ca111c03b8643ce8d2fce7e62ccc12ed9b018",
+    "qil/engine.py": "0f7277975886c185b271a9d990ff6f8fe3441a22da199a980ac1e1fb89c3a019",
+    "qil/model.py": "485654b52bc4e7a82c7ba3b7f9255c10b06d51ce4d84a7897430c4c686d9eb5f",
+    "qil/scheduler.py": "4b7cc79360b3c5bc8adbdd55f7ec907b59e6e8ee3dc26d6ee23f20a0a6365642"
+  }
+}

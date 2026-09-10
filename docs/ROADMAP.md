@@ -1,5 +1,29 @@
 # 开发计划与验收
 
+## 当前主线：独立 Qwen3 推理核心
+
+- [x] 独立 Qwen3 前向、严格权重加载、分页 KV 存储与请求调度。
+- [x] 30 项独立核心单元测试及真实 Qwen3-0.6B Float32 GPU 正确性验证。
+- [x] 与 vLLM 0.10.2 的同机 FP32 eager 对照，保存输出、全部采样与源码哈希。
+- [x] 固定优化前源码及结果基线，见 artifacts/baselines。
+- [ ] BF16 数值验证、长上下文与持续请求压力测试。
+- [ ] Profiling 并实现跨请求 GPU 合批、减少同步和 KV gather 开销。
+- [ ] 独立 paged-attention kernel 与 CUDA Graph，逐项进行正确性和性能回归。
+
+已完成内容与测试边界见 [独立核心设计](INDEPENDENT_CORE.md)和
+[vLLM 对照报告](independent-vllm-comparison-2026-09-09.md)。当前性能基线已冻结，尚未开展上述优化。
+
+## 历史 nano_vllm 实验：混合请求延迟与公平性
+
+- [x] Decode 轮转修复，以及与历史调度器的 CPU 公平性对照。
+- [x] 请求级指标：逐 token 时间戳、TTFT、E2E、TPOT 和分组 P50/P95。
+- [x] 计划到达 JSONL 回放入口与 CPU 集成验证。
+- [ ] 同机 GPU 回放固定/自适应 Prefill，验证输出一致性并记录各组收益与代价。
+- [ ] 增加原版 nano-vLLM 的同等计时适配器，完成跨引擎混合负载对照。
+- [ ] 扩展到达速率与长短比例，给出适用范围和失败场景。
+
+以下基础项按具体范围验收；新增计时入口已通过 CPU 测试，尚不代表真实 GPU 指标已验证。
+
 ## 1. 可复现基线
 
 - [ ] 在 NVIDIA 环境记录 GPU、驱动、CUDA、Python 和依赖版本。

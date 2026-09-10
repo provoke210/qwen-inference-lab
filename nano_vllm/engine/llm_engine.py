@@ -36,7 +36,8 @@ class LLMEngine:
         **kwargs: 其他 Config 参数
     """
 
-    def __init__(self, model: str, **kwargs):
+    def __init__(self, model: str, *, request_metrics=None, **kwargs):
+        self.request_metrics = request_metrics
         # 过滤有效配置字段
         valid_fields = {f.name for f in fields(Config)}
         config_kwargs = {k: v for k, v in kwargs.items() if k in valid_fields}
@@ -83,19 +84,30 @@ class LLMEngine:
         for worker in self.workers:
             worker.join(timeout=5)
 
-    def add_request(self, prompt, sampling_params: SamplingParams = SamplingParams()):
+    def add_request(self, prompt, sampling_params: SamplingParams = SamplingParams(),
+                    *, arrival_time=None, group="default"):
         """添加推理请求
 
         Args:
             prompt: 文本字符串或 token ID 列表
             sampling_params: 采样参数
         """
+        admitted = perf_counter() if self.request_metrics is not None else None
+        if self.request_metrics is not None and arrival_time is not None:
+            from math import isfinite
+            if not isfinite(arrival_time) or arrival_time > admitted:
+                raise ValueError("arrival_time must be a finite past perf_counter timestamp")
         if isinstance(prompt, str):
             token_ids = self.tokenizer.encode(prompt)
         else:
             token_ids = prompt
         seq = Sequence(token_ids, sampling_params)
         self.scheduler.add(seq)
+        if self.request_metrics is not None:
+            self.request_metrics.admit(seq.seq_id,
+                                       admitted if arrival_time is None else arrival_time,
+                                       admitted, group)
+        return seq.seq_id
 
     def step(self) -> list[tuple[int, list[int]]]:
         """执行一步推理循环
@@ -106,6 +118,13 @@ class LLMEngine:
         seqs, has_prefill = self.scheduler.schedule()
         token_ids = self.model_runner.call("run", seqs, has_prefill)
         self.scheduler.postprocess(seqs, token_ids)
+        if self.request_metrics is not None:
+            # ModelRunner.run returns token_ids.tolist(), so GPU sampling has
+            # completed. This is host-observed availability, not client receipt.
+            observed = perf_counter()
+            for seq in seqs:
+                self.request_metrics.observe(seq.seq_id, seq.num_completion_tokens,
+                                             observed, seq.is_finished)
 
         finished = []
         for seq in seqs:

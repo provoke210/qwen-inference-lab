@@ -76,6 +76,39 @@ def test_aged_prefill_gets_slot_when_decode_saturates():
     assert s.last_schedule["aged_reservation"]
 
 
+@pytest.mark.parametrize("adaptive", [False, True])
+@pytest.mark.parametrize("limits", [dict(max_num_batched_tokens=1), dict(max_num_seqs=1)])
+def test_decode_budget_rotates_without_starving_tail(adaptive, limits):
+    s = make_scheduler(enable_adaptive_prefill=adaptive, **limits)
+    seqs = [running(s) for _ in range(3)]
+    served = []
+    while not s.is_finished():
+        batch, mixed = s.schedule()
+        assert not mixed and len(batch) == 1
+        served.append(seqs.index(batch[0]))
+        s.postprocess(batch, [42])
+        assert len(served) <= 9
+    assert served == [0, 1, 2] * 3
+    assert all(q.num_completion_tokens == 4 for q in seqs)
+    assert not s.block_manager.used_block_ids
+
+
+def test_decode_rotation_preserves_prefill_reservation():
+    s = make_scheduler(max_num_seqs=2, max_num_batched_tokens=2,
+                       prefill_wait_steps=1, min_prefill_tokens=1)
+    active = [running(s) for _ in range(3)]
+    waiting = request(4)
+    s.add(waiting)
+    served = []
+    for _ in range(3):
+        batch, mixed = s.schedule()
+        assert mixed and waiting in batch
+        assert sum(q.num_scheduled_tokens for q in batch) == 2
+        served.extend(active.index(q) for q in batch if q in active)
+        s.postprocess(batch, [42] * len(batch))
+    assert served == [0, 1, 2]
+
+
 def test_memory_blocked_reservation_allows_decode_progress():
     s = make_scheduler(max_num_seqs=1, num_kvcache_blocks=1, prefill_wait_steps=1)
     active = running(s)

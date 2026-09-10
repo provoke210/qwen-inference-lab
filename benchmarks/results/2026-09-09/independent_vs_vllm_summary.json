@@ -1,0 +1,382 @@
+{
+  "dtype": "float32",
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "quality": [
+    {
+      "name": "kv_cache",
+      "prompt": "用一句中文解释大语言模型推理中的 KV Cache 有什么作用。",
+      "qil_text": "KV Cache（Key-Value Cache）在大语言模型推理中主要用于缓存模型的键值对（Key-Value Pair），以提高推理效率和计算速度。它通过预处理和存储模型的输入和输出的键值对，减少重复计算，从而加快模型的推理过程。",
+      "vllm_text": "KV Cache（Key-Value Cache）在大语言模型推理中主要用于缓存模型的键值对（Key-Value Pair），以提高推理效率和计算速度。它通过预处理和存储模型的输入和输出的键值对，减少重复计算，从而加快模型的推理过程。",
+      "exact": true,
+      "common_prefix_tokens": 64,
+      "qil_tokens": 64,
+      "vllm_tokens": 64,
+      "first_difference": null
+    },
+    {
+      "name": "arithmetic",
+      "prompt": "计算 17 × 23，只输出答案。",
+      "qil_text": "17 × 23 = 391",
+      "vllm_text": "17 × 23 = 391",
+      "exact": true,
+      "common_prefix_tokens": 12,
+      "qil_tokens": 12,
+      "vllm_tokens": 12,
+      "first_difference": null
+    },
+    {
+      "name": "retrieval",
+      "prompt": "记录：小明的门禁密码是 7392，小红的门禁密码是 4816。小明的门禁密码是多少？只输出数字。",
+      "qil_text": "小明的门禁密码是 **7392**。",
+      "vllm_text": "小明的门禁密码是 **7392**。",
+      "exact": true,
+      "common_prefix_tokens": 15,
+      "qil_tokens": 15,
+      "vllm_tokens": 15,
+      "first_difference": null
+    },
+    {
+      "name": "python",
+      "prompt": "写一个 Python 函数 is_even(n)，判断整数 n 是否为偶数。只输出代码。",
+      "qil_text": "```python\ndef is_even(n):\n    return n % 2 == 0\n```",
+      "vllm_text": "```python\ndef is_even(n):\n    return n % 2 == 0\n```",
+      "exact": true,
+      "common_prefix_tokens": 20,
+      "qil_tokens": 20,
+      "vllm_tokens": 20,
+      "first_difference": null
+    }
+  ],
+  "performance": [
+    {
+      "name": "input128_batch1",
+      "batch": 1,
+      "prompt_tokens": 128,
+      "new_tokens": 32,
+      "qil_median_s": 1.1074581127613783,
+      "vllm_median_s": 0.8022885881364346,
+      "qil_tokens_per_s": 28.894998042147147,
+      "vllm_tokens_per_s": 39.885897011610226,
+      "vllm_speedup": 1.3803737571960173,
+      "qil_repeatable": true,
+      "vllm_repeatable": true,
+      "token_comparisons": [
+        {
+          "run": 0,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        }
+      ]
+    },
+    {
+      "name": "input128_batch4",
+      "batch": 4,
+      "prompt_tokens": 128,
+      "new_tokens": 32,
+      "qil_median_s": 4.432562060654163,
+      "vllm_median_s": 0.8762636315077543,
+      "qil_tokens_per_s": 28.877204255344274,
+      "vllm_tokens_per_s": 146.07476037748498,
+      "vllm_speedup": 5.05848000678428,
+      "qil_repeatable": true,
+      "vllm_repeatable": true,
+      "token_comparisons": [
+        {
+          "run": 0,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 0,
+          "request": 1,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 0,
+          "request": 2,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 0,
+          "request": 3,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 1,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 2,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 3,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 1,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 2,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 3,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        }
+      ]
+    },
+    {
+      "name": "input512_batch1",
+      "batch": 1,
+      "prompt_tokens": 512,
+      "new_tokens": 32,
+      "qil_median_s": 1.1993508320301771,
+      "vllm_median_s": 0.6686515603214502,
+      "qil_tokens_per_s": 26.681100429832227,
+      "vllm_tokens_per_s": 47.85751189246637,
+      "vllm_speedup": 1.7936858345976137,
+      "qil_repeatable": true,
+      "vllm_repeatable": true,
+      "token_comparisons": [
+        {
+          "run": 0,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        }
+      ]
+    },
+    {
+      "name": "input512_batch4",
+      "batch": 4,
+      "prompt_tokens": 512,
+      "new_tokens": 32,
+      "qil_median_s": 4.8491081316024065,
+      "vllm_median_s": 0.9687412679195404,
+      "qil_tokens_per_s": 26.39660665964607,
+      "vllm_tokens_per_s": 132.1302232482483,
+      "vllm_speedup": 5.005576093621268,
+      "qil_repeatable": true,
+      "vllm_repeatable": true,
+      "token_comparisons": [
+        {
+          "run": 0,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 0,
+          "request": 1,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 0,
+          "request": 2,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 0,
+          "request": 3,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 1,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 2,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 1,
+          "request": 3,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 0,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 1,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 2,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        },
+        {
+          "run": 2,
+          "request": 3,
+          "exact": true,
+          "common_prefix_tokens": 32,
+          "qil_tokens": 32,
+          "vllm_tokens": 32,
+          "first_difference": null
+        }
+      ]
+    }
+  ]
+}

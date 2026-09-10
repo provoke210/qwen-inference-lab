@@ -126,6 +126,10 @@ class Scheduler:
                 num_batched_tokens += 1
                 self.running.append(seq)
 
+        # Requests skipped by the decode budget go first next round. Keeping
+        # served requests at the head can starve the tail until they finish.
+        self.running.rotate(-len(scheduled_seqs))
+
         # Phase 2: Chunked Prefill（固定大小分块）
         pressure = len(self.block_manager.used_block_ids) / len(self.block_manager.blocks)
         prefill_budget = self.policy.budget(
