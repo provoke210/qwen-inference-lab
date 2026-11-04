@@ -1,7 +1,7 @@
 # 独立推理核心 v0.1
 
 2026-09-09 重写底层。新的 `qil/` 不导入、不包装、不继承历史
-`nano_vllm/` 里的任何运行时类；历史代码见标签 `legacy-nano-vllm`。
+`nano_vllm/` 里的任何运行时类；历史代码见分支 `legacy-nano-vllm`。
 
 ## 模块与数据流
 
@@ -59,7 +59,7 @@ Prefill 用 chunk/token 预算限制，Decode 每次一个 token。新请求可�
 - [Transformers 4.55.2 Qwen3 参考实现](https://github.com/huggingface/transformers/blob/v4.55.2/src/transformers/models/qwen3/modeling_qwen3.py)
 
 标准 Transformer/RoPE/GQA 算法不作为原创算法声明。仓库以前基于 nano-vllm-lite 的历史仍保留在
-PROVENANCE、Git 历史和标签 `legacy-nano-vllm` 中，不将历史扩展或历史性能结果归到新核心。
+PROVENANCE、Git 历史和分支 `legacy-nano-vllm` 中，不将历史扩展或历史性能结果归到新核心。
 
 ## 验收证据
 

@@ -103,4 +103,4 @@ python -m benchmarks.summarize_independent \
 - [逐项对比摘要](../benchmarks/results/2026-09-09/independent_vs_vllm_summary.json)
 - [运行脚本](../benchmarks/compare_independent.py)与[核对脚本](../benchmarks/summarize_independent.py)
 
-不要与 `legacy-nano-vllm` 标签中旧引擎的结果混用。
+不要与 `legacy-nano-vllm` 分支中旧引擎的结果混用。

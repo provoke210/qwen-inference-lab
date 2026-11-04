@@ -11,5 +11,5 @@ Attention 均为本仓库独立实现，不导入、不包装、不继承任何�
 
 仓库早期基于 [nano-vllm-lite](https://github.com/pzsacc/nano-vllm-lite)
 （其上游为 [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm)）做调度实验。
-这部分代码已从主分支移除，完整保留在 Git 历史和标签 `legacy-nano-vllm` 中，
+这部分代码已从主分支移除，完整保留在 Git 历史和分支 `legacy-nano-vllm` 中，
 原作者的提交记录未作改动。历史代码及其基准数据不作为 `qil` 的功能或性能依据。

@@ -123,4 +123,4 @@ python -m benchmarks.validate_independent --model /path/to/Qwen3-0.6B \
 
 ## 历史实现
 
-早期基于 nano-vllm-lite 的代码已移出主分支，保留在标签 `legacy-nano-vllm` 中，见 [PROVENANCE](PROVENANCE.md)。
+早期基于 nano-vllm-lite 的代码已移出主分支，保留在分支 `legacy-nano-vllm` 中，见 [PROVENANCE](PROVENANCE.md)。
