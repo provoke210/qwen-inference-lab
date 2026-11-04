@@ -1,93 +1,103 @@
-# Qwen Inference Lab — 独立推理核心
+# Qwen Inference Lab
 
-`qil` 是从请求状态、分页 KV 缓存、调度循环到模型前向重新实现的单设备推理引擎。
-当前支持 Qwen3 稠密文本模型，使用 PyTorch 张量算子与 SDPA；运行时不依赖 nano-vLLM、
-nano-vllm-lite、vLLM、Triton 或 FlashAttention 扩展。
+A single-GPU LLM inference engine for dense Qwen3 models, written from scratch in PyTorch
+with an optional Triton paged-decode attention kernel. It covers the full request path:
+request state, a paged KV cache, scheduling under a token budget, chunked prefill,
+cross-request decode batching, and the model forward pass. No vLLM, nano-vLLM or
+Transformers code runs at inference time; Transformers is used only as a numerical
+reference in tests.
 
-这是推理引擎的从零实现，不是从零训练模型，也不宣称模型架构或标准算子算法为原创。
-Qwen3 模型结构按官方配置实现，Transformers 用于测试参考；输入文本时可选用它的 tokenizer。
+## Features
 
-## 已实现
+- **Qwen3 forward**: GQA, per-head Q/K RMSNorm, RoPE, SiLU-gated MLP; strict sharded
+  SafeTensors loading that rejects missing, unknown, mis-shaped or inconsistent tied weights.
+- **Paged KV cache**: per-request page ownership, pages allocated as tokens are computed,
+  reads of unwritten positions rejected, pages recycled on finish/cancel/error.
+- **Scheduler**: round-robin over active requests, unified token budget, chunked prefill,
+  admission between steps, EOS/length stop, cancellation and failure cleanup.
+- **Decode batching**: one forward for all decode requests in a step, with different
+  history lengths and independent page tables.
+- **Selective logits**: intermediate prefill chunks only write KV; the final chunk projects
+  only its last position.
+- **Triton paged decode attention** (`decode_attention='paged'`): split-context kernel that
+  reads K/V directly through the page table, maps query heads to KV heads by integer
+  division, and merges FP32 partial softmax statistics in a second kernel — no history
+  gather, padding or GQA head expansion. Prefill still uses PyTorch SDPA.
 
-- 独立 Qwen3 前向：GQA、Q/K RMSNorm、绝对位置 RoPE、因果注意力、SiLU 门控 MLP。
-- SafeTensors 分片加载与严格权重检查，支持共享/独立 LM Head，拒绝遗漏、未知或尺寸不符的权重。
-- 分页 KV 存储：独立请求所有权、按实际计算进度增加页面、释放和复用、禁止读取未写入位置。
-- 独立请求与轮转调度：统一 token 预算、分块 Prefill、运行间接入新请求、EOS/长度停止、取消与异常回收。
-- `step()` 返回逐 token 事件；请求结果记录 TTFT、完成时间和平均 token 间隔。
-- 包只包含 `qil`；不会编译或安装旧代码的 CUDA 扩展。
+## Results
 
-## 安装与运行
+RTX 4080 SUPER, Qwen3-0.6B, FP32, eager, 32 output tokens per request, one warmup and
+the median of five runs. Every configuration below produced token-identical output to
+the baseline it is compared with.
 
-Python 3.10+。CPU 或 NVIDIA CUDA 上使用相应 PyTorch 安装版本；已完成 CPU 单元测试与单卡 CUDA Float32 正确性冒烟验证。
+**Throughput vs. vLLM 0.10.2** (same machine, same token IDs, prefix caching off)
+([raw](benchmarks/results/2026-09-20/prefill-r2/))
+
+| Workload | qil (tok/s) | vLLM (tok/s) | qil / vLLM |
+|---|---:|---:|---:|
+| 128-token prompt × 4 requests | 121.2 | 150.9 | 80.3% |
+| 512-token prompt × 4 requests | 85.8 | 107.7 | 79.7% |
+| 128-token prompt × 1 request | 26.9 | 44.2 | 60.9% |
+| 512-token prompt × 1 request | 24.4 | 42.9 | 57.0% |
+
+**Paged decode attention vs. dense gather** ([raw](benchmarks/results/2026-09-20/paged-r4b/))
+
+| Context lengths | Attention temp memory (dense → paged) | End-to-end speedup |
+|---|---:|---:|
+| 128 × 4 | 10.0 → 0.10 MiB | +3.4% |
+| 512 × 4 | 40.0 → 0.29 MiB | +2.0% |
+| 17 / 63 / 255 / 511 | 40.0 → 0.29 MiB | +3.6% |
+| 32 / 128 / 512 / 2048 | 160.0 → 1.05 MiB | +9.6% |
+
+BF16 works for generation but is still experimental: the paged kernel with BF16 diverges
+on some extended mixed workloads, so dense attention remains the default. Details,
+failed attempts and root causes (e.g. a RoPE inverse-frequency rounding difference found
+by layer-by-layer comparison) are in [docs/OPTIMIZATION_DEBUG_LOG.md](docs/OPTIMIZATION_DEBUG_LOG.md).
+
+## Quick start
+
+Python 3.10+.
 
 ```bash
-python -m pip install -e '.[text,test]'
-python -m pytest
+pip install -e '.[text,test]'        # add '.[paged]' on Linux + CUDA for the Triton kernel
+pytest -q
 python -m qil --model /path/to/Qwen3-0.6B --prompt 'The capital of France is' \
   --device cuda --dtype float32 --max-new-tokens 16
 ```
 
-模型需要事先下载到本地。也可以仅安装核心依赖并传入 token IDs，完全不需要 Transformers：
-
-```bash
-python -m pip install -e .
-python -m qil --model /path/to/Qwen3-0.6B --token-ids '[1,2,3]' \
-  --device cpu --max-new-tokens 8
-```
-
-编程接口：
-
 ```python
 from qil import Engine, Qwen3
 
-model = Qwen3.from_directory('/path/to/model', device='cpu')
-engine = Engine(model, num_pages=256, page_size=16,
-                token_budget=128, prefill_chunk=64, max_active=4)
-request_id = engine.submit([1, 2, 3], max_new_tokens=8)
+model = Qwen3.from_directory('/path/to/Qwen3-0.6B', device='cuda')
+engine = Engine(model, num_pages=256, page_size=16, token_budget=512,
+                prefill_chunk=128, max_active=4, decode_attention='paged')
+rid = engine.submit([1, 2, 3], max_new_tokens=8)
 while not engine.idle:
     for event in engine.step():
         print(event)
-print(engine.result(request_id))
-engine.close()
+print(engine.result(rid))   # tokens, TTFT, E2E, TPOT
 ```
 
-`submit()` 接收 token IDs。`step()` 是同步调用；可以在两步之间接入/取消请求。
-`generate()` 提供空闲引擎上的批量便捷接口，返回每条请求的结果。
-缓存使用显式页面数控制，不自动按总显存比例分配。容量不足的单条请求会被拒绝。
+## Layout
 
-## 验证与边界
-
-独立核心 **30 项测试通过**；包括历史实现的全仓测试 **74 项通过、1 个 CUDA 测试模块跳过**。
-使用随机初始化的小型 Qwen3 与 Transformers 4.55.2 对照，验证全 Prefill、逐 token、
-不规则分块 logits 和混合长度贪心生成。另用安装后的 wheel 在禁止导入旧引擎及 Transformers
-的独立进程中完成推理，与参考 token 序列一致。[本地原始验证记录](benchmarks/results/2026-09-09/independent_cpu.json)。
-
-**已完成真实 Qwen3-0.6B 单卡 Float32 正确性验证，尚无性能提升结论。**
-在 RTX 4080 SUPER 上，5/198-token 两条输入分别采用 1/32-token 分块，各生成 8 个 token，
-四组输出均与 Transformers 完全一致。短输入最后位置 logits 最大绝对误差为 1.72e-5，
-缓存回收断言通过。[GPU 原始结果](benchmarks/results/2026-09-09/independent_gpu.json)。
-
-另已完成与 **vLLM 0.10.2 的 FP32 eager 对比**：四类回答及性能负载的 30 条生成序列
-均逐 token 一致。当前独立核心约 26–29 输出 tokens/s；vLLM 单请求快 1.4–1.8 倍，
-四请求总吞吐约为独立核心的 5 倍。这不是 vLLM 默认最佳性能测试。
-详见[独立核心 vLLM 对比报告](docs/independent-vllm-comparison-2026-09-09.md)。
-
-当前每个请求块逐个执行模型，尚无跨请求 GPU 合批；分页 KV 会 gather 为连续张量交给 SDPA，
-尚无原生 paged-attention kernel、CUDA Graph、前缀缓存、量化、多卡、MoE 或多模态。
-接入时按最大上下文预留容量额度以防死锁，吞吐和显存利用率会比较保守。
-
-现有服务器上的正确性验证入口：
-
-```bash
-python -m benchmarks.validate_independent --model /path/to/Qwen3-0.6B \
-  --device cuda --dtype float32 --output /tmp/independent_gpu.json
+```text
+qil/
+  config.py           checkpoint config parsing
+  model.py            Qwen3 modules and explicit checkpoint mapping
+  cache.py            page pool, page tables, write-progress checks
+  scheduler.py        request/work structures, budget, round-robin
+  engine.py           step loop, batching, token events, cleanup
+  attention.py        dense / grouped / paged decode attention dispatch
+  paged_attention.py  Triton split-context paged decode kernel
+benchmarks/           validation, profiling and vLLM comparison scripts + raw results
+docs/                 design notes and per-round GPU validation reports (Chinese)
 ```
 
-详见 [独立核心设计与验收](docs/INDEPENDENT_CORE.md)。
+## Limitations
 
-## 历史实现
+Single GPU; prefill is still executed per request; no CUDA Graph, prefix caching,
+quantization, tensor parallelism, MoE or multimodal support. KV capacity is reserved for
+each request's maximum length at admission, which avoids deadlock but is conservative.
+Results are limited to the model, hardware and workloads listed above.
 
-`nano_vllm/`、原调度实验和此前的 vLLM 对照结果保留为历史资料，不打入新 wheel，
-不属于新核心的依赖或性能证据。原安装脚本保存在 `docs/UPSTREAM_SETUP.py`。
-此前项目入口保存在 [历史 README](docs/LEGACY_PROJECT_README.md)，来源记录见
-[PROVENANCE](docs/PROVENANCE.md)。
+See [docs/PROVENANCE.md](docs/PROVENANCE.md) for code origin.
