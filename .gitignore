@@ -18,3 +18,9 @@ benchmark_results.json
 model_weights/
 *.safetensors
 .pytest_cache/
+
+# large profiler traces and intermediate source snapshots stay local
+*.trace.json.gz
+artifacts/baselines/*.tar.gz
+!artifacts/baselines/qil-prefill-20260920-r2.tar.gz
+!artifacts/baselines/qil-paged-20260920-r4b.tar.gz

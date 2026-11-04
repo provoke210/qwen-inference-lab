@@ -1,4 +1,4 @@
-name: Independent core and historical scheduler tests
+name: cpu-tests
 on: [push, pull_request]
 jobs:
   tests:
@@ -12,5 +12,5 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
-      - run: python -m pip install -e '.[test]' -r requirements-test.txt
-      - run: python -m pytest tests -q
+      - run: python -m pip install -e '.[test]'
+      - run: python -m pytest -q
