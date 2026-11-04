@@ -12,11 +12,13 @@ def main():
     source.add_argument('--token-ids', help='JSON list; runs without Transformers/tokenizer dependency')
     parser.add_argument('--device', default='cpu', choices=['cpu', 'cuda', 'mps'])
     parser.add_argument('--dtype', default='float32', choices=['float32', 'float16', 'bfloat16'])
+    parser.add_argument('--sdpa-backend', default='auto', choices=['auto', 'math', 'efficient'])
     parser.add_argument('--max-new-tokens', default=64, type=int)
     parser.add_argument('--pages', default=256, type=int)
     parser.add_argument('--page-size', default=16, type=int)
     parser.add_argument('--chunk-size', default=64, type=int)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--decode-attention', choices=['dense', 'grouped', 'paged'], default='dense')
     args = parser.parse_args()
     import torch
     from .engine import Engine
@@ -29,9 +31,14 @@ def main():
     else:
         tokens = json.loads(args.token_ids)
     model = Qwen3.from_directory(args.model, device=args.device, dtype=getattr(torch, args.dtype))
-    engine = Engine(model, num_pages=args.pages, page_size=args.page_size, prefill_chunk=args.chunk_size)
+    engine = Engine(model, num_pages=args.pages, page_size=args.page_size, prefill_chunk=args.chunk_size, decode_attention=args.decode_attention)
     try:
-        result = engine.generate([tokens], max_new_tokens=args.max_new_tokens)[0]
+        from contextlib import nullcontext
+        from torch.nn.attention import sdpa_kernel, SDPBackend
+        backends = {'math': SDPBackend.MATH, 'efficient': SDPBackend.EFFICIENT_ATTENTION}
+        context = nullcontext() if args.sdpa_backend == 'auto' else sdpa_kernel(backends[args.sdpa_backend])
+        with context:
+            result = engine.generate([tokens], max_new_tokens=args.max_new_tokens)[0]
         if tokenizer:
             result['text'] = tokenizer.decode(result['token_ids'], skip_special_tokens=True)
         encoded = json.dumps(result, ensure_ascii=False, indent=2)

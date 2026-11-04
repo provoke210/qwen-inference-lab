@@ -1,6 +1,6 @@
 """Standalone inference loop: planning -> forward -> token event -> release.
 
-The initial backend executes one request chunk at a time, not a fused GPU batch.
+Decode requests can share one model forward; prefill chunks execute individually.
 """
 from time import perf_counter
 import torch
@@ -11,15 +11,22 @@ from .scheduler import Request, Scheduler
 
 class Engine:
     def __init__(self, model, *, num_pages=256, page_size=16, token_budget=128,
-                 prefill_chunk=64, max_active=4, clock=perf_counter):
+                 prefill_chunk=64, max_active=4, clock=perf_counter, batch_decode=True,
+                 selective_logits=True, decode_attention='dense'):
+        if type(batch_decode) is not bool:
+            raise ValueError('batch_decode must be a boolean')
+        if type(selective_logits) is not bool:
+            raise ValueError('selective_logits must be a boolean')
         self.model = model.eval()
+        self.batch_decode = batch_decode
+        self.selective_logits = selective_logits
         self.clock = clock
         self.next_id = 0
         cfg = model.config
         weight = next(model.parameters())
         self.pool = PagePool(layers=cfg.num_hidden_layers, pages=num_pages, page_size=page_size,
                              kv_heads=cfg.num_key_value_heads, head_dim=cfg.head_dim,
-                             dtype=weight.dtype, device=weight.device)
+                             dtype=weight.dtype, device=weight.device, decode_attention=decode_attention)
         self.scheduler = Scheduler(self.pool, token_budget=token_budget,
                                    prefill_chunk=prefill_chunk, max_active=max_active)
 
@@ -41,34 +48,71 @@ class Engine:
 
     @torch.inference_mode()
     def step(self):
+        """Execute one budgeted plan, batching decode at its first occurrence.
+
+        All selected decode requests run together. This can move a later decode
+        ahead of an intervening prefill, but never adds work outside the plan.
+        Events are returned in actual completion order, not submission order.
+        """
         events = []
-        for work in self.scheduler.plan():
-            request = self.scheduler.requests[work.request_id]
+        plan = self.scheduler.plan()
+        decode = [work for work in plan if self.batch_decode and
+                  work.start >= len(self.scheduler.requests[work.request_id].prompt)]
+        decode_ids = {work.request_id for work in decode} if (len(decode) > 1 or self.pool.decode_attention != 'dense') else set()
+        decoded = False
+        for work in plan:
+            if work.request_id in decode_ids:
+                if decoded:
+                    continue
+                group, decoded = decode, True
+            else:
+                group = [work]
             try:
-                logits = self.model(work.tokens, start=work.start,
-                                    pool=self.pool, request_id=request.id)
-                new_computed = work.start + len(work.tokens)
-                emitted = None
-                if new_computed == len(request.input_tokens):
-                    if not torch.isfinite(logits[-1]).all().item():
-                        raise RuntimeError('model returned non-finite logits')
-                    emitted = int(logits[-1].argmax().item())
-                request.computed = new_computed
-                if emitted is not None:
-                    observed = self.clock()
-                    request.output.append(emitted)
-                    request.token_times_s.append(observed)
-                    reason = 'eos' if emitted in request.eos else (
-                        'length' if len(request.output) == request.max_new_tokens else None)
-                    if reason:
-                        self.scheduler.retire(request.id, 'completed', reason)
-                    events.append(dict(request_id=request.id, token_id=emitted,
-                                       timestamp_s=observed, finished=reason is not None))
+                if work.request_id in decode_ids:
+                    logits = self.model.forward_decode(
+                        [item.tokens[0] for item in group], starts=[item.start for item in group],
+                        pool=self.pool, request_ids=[item.request_id for item in group])
+                    emitted = self._sample(logits)
+                else:
+                    request = self.scheduler.requests[work.request_id]
+                    ready = work.start + len(work.tokens) == len(request.input_tokens)
+                    mode = ('last' if ready else 'none') if self.selective_logits else 'all'
+                    logits = self.model(work.tokens, start=work.start,
+                                        pool=self.pool, request_id=request.id, logits_mode=mode)
+                    emitted = self._sample(logits[-1:]) if ready else [None]
+                for item, token in zip(group, emitted):
+                    event = self._complete_work(item, token)
+                    if event is not None:
+                        events.append(event)
             except Exception as error:
-                request.error = str(error)
-                self.scheduler.retire(request.id, 'failed', 'error')
+                # A failed batched forward may have written some/all layer KV.
+                # Retire every member so none can resume from a partial cache.
+                for item in group:
+                    self.scheduler.requests[item.request_id].error = str(error)
+                    self.scheduler.retire(item.request_id, 'failed', 'error')
                 raise
         return events
+
+    @staticmethod
+    def _sample(logits):
+        if not torch.isfinite(logits).all().item():
+            raise RuntimeError('model returned non-finite logits')
+        return logits.argmax(dim=-1).tolist()
+
+    def _complete_work(self, work, token):
+        request = self.scheduler.requests[work.request_id]
+        request.computed = work.start + len(work.tokens)
+        if token is None:
+            return None
+        observed = self.clock()
+        request.output.append(token)
+        request.token_times_s.append(observed)
+        reason = 'eos' if token in request.eos else (
+            'length' if len(request.output) == request.max_new_tokens else None)
+        if reason:
+            self.scheduler.retire(request.id, 'completed', reason)
+        return dict(request_id=request.id, token_id=token,
+                    timestamp_s=observed, finished=reason is not None)
 
     def cancel(self, request_id):
         return self.scheduler.retire(request_id, 'cancelled', 'cancelled')

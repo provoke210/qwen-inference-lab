@@ -9,6 +9,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .config import ModelConfig
+from .attention import decode_attention
 
 
 class ScaleNorm(nn.Module):
@@ -69,6 +70,21 @@ class DecoderBlock(nn.Module):
         normalized = self.before_mlp(x)
         return x + self.contract(F.silu(self.gate(normalized)) * self.expand(normalized))
 
+    def forward_decode(self, x, *, angles, pool, batch, layer):
+        """A single batched projection/attention/MLP for independent requests."""
+        cfg = self.cfg
+        size = len(batch.request_ids)
+        normalized = self.before_attention(x)
+        q = self.query_norm(self.query(normalized).reshape(size, cfg.num_attention_heads, cfg.head_dim))
+        k = self.key_norm(self.key(normalized).reshape(size, cfg.num_key_value_heads, cfg.head_dim))
+        v = self.value(normalized).reshape(size, cfg.num_key_value_heads, cfg.head_dim)
+        q, k = self.rotate(q, angles), self.rotate(k, angles)
+        pool.write_decode(batch, layer, k, v)
+        attended = decode_attention(q, pool, batch, layer).reshape(size, -1)
+        x = x + self.attention_output(attended)
+        normalized = self.before_mlp(x)
+        return x + self.contract(F.silu(self.gate(normalized)) * self.expand(normalized))
+
 
 class Qwen3(nn.Module):
     def __init__(self, config):
@@ -80,22 +96,64 @@ class Qwen3(nn.Module):
         self.head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
         if config.tie_word_embeddings:
             self.head.weight = self.embedding.weight
+        # Canonical CPU FP32 coefficients match checkpoint reference initialization.
+        # Negative powers and GPU pow are algebraically equivalent but can differ
+        # at BF16 trig rounding boundaries. Keep this derived CPU metadata outside
+        # module buffers so model.to(bfloat16) cannot round the frequencies.
+        exponent = torch.arange(0, config.head_dim, 2, device='cpu', dtype=torch.float32) / config.head_dim
+        self._rope_frequencies_cpu = 1.0 / (config.rope_theta ** exponent)
+
+    def rotary_angles(self, positions):
+        frequencies = self._rope_frequencies_cpu.to(device=positions.device)
+        return positions.float()[:, None] * frequencies[None, :]
 
     @torch.inference_mode()
-    def forward(self, token_ids, *, start, pool, request_id):
+    def forward(self, token_ids, *, start, pool, request_id, logits_mode='all'):
+        """Populate every token's KV; return all/last logits or None.
+
+        Intermediate prefill chunks need only KV (none). A completed prompt
+        needs one prediction (last). Keep all as the direct-call reference API.
+        """
+        if logits_mode not in ('all', 'last', 'none'):
+            raise ValueError('logits_mode must be all, last or none')
         end = start + len(token_ids)
         if start < 0 or not token_ids or end > self.config.max_position_embeddings:
             raise ValueError('invalid model context')
         device = self.embedding.weight.device
         tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
         positions = torch.arange(start, end, device=device)
-        frequencies = self.config.rope_theta ** (-torch.arange(
-            0, self.config.head_dim, 2, dtype=torch.float32, device=device) / self.config.head_dim)
-        angles = positions.float()[:, None] * frequencies[None, :]
+        angles = self.rotary_angles(positions)
         hidden = self.embedding(tokens)
         for index, block in enumerate(self.blocks):
             hidden = block(hidden, positions=positions, angles=angles,
                            pool=pool, request_id=request_id, layer=index)
+        if logits_mode == 'none':
+            return None
+        if logits_mode == 'last':
+            hidden = hidden[-1:]
+        return self.head(self.final_norm(hidden)).float()
+
+    @torch.inference_mode()
+    def forward_decode(self, token_ids, *, starts, pool, request_ids):
+        """Return [batch, vocab] logits, preserving the supplied request order.
+
+        Each row consumes exactly one token. Prefill remains on forward(); the
+        page pool owns the independent histories and pads only the attention KV.
+        """
+        token_ids, starts, request_ids = list(token_ids), tuple(starts), tuple(request_ids)
+        if not token_ids or len(token_ids) != len(starts) or len(starts) != len(request_ids):
+            raise ValueError('decode token, position and request counts must match')
+        if any(type(t) is not int or not 0 <= t < self.config.vocab_size for t in token_ids):
+            raise ValueError('decode requires valid integer token IDs')
+        if any(type(s) is not int or not 0 <= s < self.config.max_position_embeddings for s in starts):
+            raise ValueError('invalid decode model context')
+        batch = pool.prepare_decode(request_ids, starts)
+        device = self.embedding.weight.device
+        tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
+        angles = self.rotary_angles(batch.positions)
+        hidden = self.embedding(tokens)
+        for index, block in enumerate(self.blocks):
+            hidden = block.forward_decode(hidden, angles=angles, pool=pool, batch=batch, layer=index)
         return self.head(self.final_norm(hidden)).float()
 
     def checkpoint_parameters(self):

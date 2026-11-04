@@ -15,8 +15,8 @@ def restricted(name, *args, **kwargs):
 builtins.__import__ = restricted
 from qil import Qwen3, Engine
 engine = Engine(Qwen3.from_directory(sys.argv[1]), num_pages=8, page_size=4)
-result = engine.generate([[1, 2, 3]], max_new_tokens=2, ignore_eos=True)[0]
-assert len(result['token_ids']) == 2 and result['state'] == 'completed'
+results = engine.generate([[1, 2, 3], [4, 5, 6]], max_new_tokens=3, ignore_eos=True)
+assert all(len(result['token_ids']) == 3 and result['state'] == 'completed' for result in results)
 assert not engine.pool.tables
 '''
     subprocess.run([sys.executable, '-c', code, str(tmp_path)], check=True, timeout=60)
