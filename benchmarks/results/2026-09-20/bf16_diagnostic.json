@@ -1,0 +1,266 @@
+{
+  "scope": "Diagnostic subset selected after observing BF16 tolerance failures; no threshold changes",
+  "torch": "2.8.0+cu128",
+  "dtype": "bfloat16",
+  "cases": [
+    [
+      0,
+      2
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      5
+    ]
+  ],
+  "checks": [
+    {
+      "left": "qil_serial",
+      "right": "hf_eager",
+      "request_id": 0,
+      "step": 2,
+      "max_abs_error": 0.390625,
+      "mean_abs_error": 0.11171027272939682,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_serial",
+      "right": "hf_eager",
+      "request_id": 1,
+      "step": 1,
+      "max_abs_error": 0.2578125,
+      "mean_abs_error": 0.043380673974752426,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_serial",
+      "right": "hf_eager",
+      "request_id": 2,
+      "step": 3,
+      "max_abs_error": 0.3125,
+      "mean_abs_error": 0.07111302018165588,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_serial",
+      "right": "hf_eager",
+      "request_id": 3,
+      "step": 5,
+      "max_abs_error": 0.625,
+      "mean_abs_error": 0.0777420774102211,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_eager",
+      "request_id": 0,
+      "step": 2,
+      "max_abs_error": 0.34375,
+      "mean_abs_error": 0.08193744719028473,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_eager",
+      "request_id": 1,
+      "step": 1,
+      "max_abs_error": 0.28125,
+      "mean_abs_error": 0.04664339870214462,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_eager",
+      "request_id": 2,
+      "step": 3,
+      "max_abs_error": 0.3125,
+      "mean_abs_error": 0.07355299592018127,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_eager",
+      "request_id": 3,
+      "step": 5,
+      "max_abs_error": 0.625,
+      "mean_abs_error": 0.07778708636760712,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "qil_serial",
+      "request_id": 0,
+      "step": 2,
+      "max_abs_error": 0.15625,
+      "mean_abs_error": 0.03769128397107124,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "qil_serial",
+      "request_id": 1,
+      "step": 1,
+      "max_abs_error": 0.1875,
+      "mean_abs_error": 0.03190794959664345,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "qil_serial",
+      "request_id": 2,
+      "step": 3,
+      "max_abs_error": 0.21875,
+      "mean_abs_error": 0.03108586184680462,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "qil_serial",
+      "request_id": 3,
+      "step": 5,
+      "max_abs_error": 0.1875,
+      "mean_abs_error": 0.026155244559049606,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "hf_sdpa",
+      "right": "hf_eager",
+      "request_id": 0,
+      "step": 2,
+      "max_abs_error": 0.25,
+      "mean_abs_error": 0.03708219900727272,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "hf_sdpa",
+      "right": "hf_eager",
+      "request_id": 1,
+      "step": 1,
+      "max_abs_error": 0.2962646484375,
+      "mean_abs_error": 0.04578324407339096,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "hf_sdpa",
+      "right": "hf_eager",
+      "request_id": 2,
+      "step": 3,
+      "max_abs_error": 0.296875,
+      "mean_abs_error": 0.06422659754753113,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "hf_sdpa",
+      "right": "hf_eager",
+      "request_id": 3,
+      "step": 5,
+      "max_abs_error": 0.5,
+      "mean_abs_error": 0.07118287682533264,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_sdpa",
+      "request_id": 0,
+      "step": 2,
+      "max_abs_error": 0.296875,
+      "mean_abs_error": 0.06808938086032867,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_sdpa",
+      "request_id": 1,
+      "step": 1,
+      "max_abs_error": 0.21923828125,
+      "mean_abs_error": 0.03729335591197014,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_sdpa",
+      "request_id": 2,
+      "step": 3,
+      "max_abs_error": 0.1875,
+      "mean_abs_error": 0.030464420095086098,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_batched",
+      "right": "hf_sdpa",
+      "request_id": 3,
+      "step": 5,
+      "max_abs_error": 0.3125,
+      "mean_abs_error": 0.05454132705926895,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_math_batched",
+      "right": "hf_eager",
+      "request_id": 0,
+      "step": 2,
+      "max_abs_error": 0.366455078125,
+      "mean_abs_error": 0.06825733929872513,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_math_batched",
+      "right": "hf_eager",
+      "request_id": 1,
+      "step": 1,
+      "max_abs_error": 0.296875,
+      "mean_abs_error": 0.046532995998859406,
+      "within_tolerance": false,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_math_batched",
+      "right": "hf_eager",
+      "request_id": 2,
+      "step": 3,
+      "max_abs_error": 0.265625,
+      "mean_abs_error": 0.05112926661968231,
+      "within_tolerance": true,
+      "argmax_match": true
+    },
+    {
+      "left": "qil_math_batched",
+      "right": "hf_eager",
+      "request_id": 3,
+      "step": 5,
+      "max_abs_error": 0.515625,
+      "mean_abs_error": 0.07463520020246506,
+      "within_tolerance": false,
+      "argmax_match": true
+    }
+  ],
+  "script_sha256": "10ebbeb220777c8728d22d23777a8cfca08f6368d0816e85ee0daf8471eb4297"
+}

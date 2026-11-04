@@ -1,0 +1,19 @@
+START backend-probe
+DONE backend-probe 0
+START cached-math-batched-short
+DONE cached-math-batched-short 0
+START cached-math-batched-long
+DONE cached-math-batched-long 0
+START cached-math-serial-short
+DONE cached-math-serial-short 0
+START cached-math-serial-long
+DONE cached-math-serial-long 0
+START cached-efficient-batched-short
+DONE cached-efficient-batched-short 0
+START cached-efficient-batched-long
+DONE cached-efficient-batched-long 0
+START cached-auto-batched-short
+DONE cached-auto-batched-short 1
+START cached-auto-batched-long
+DONE cached-auto-batched-long 1
+ARCHIVED

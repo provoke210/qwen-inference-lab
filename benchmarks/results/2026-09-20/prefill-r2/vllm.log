@@ -1,0 +1,47 @@
+INFO 09-20 16:26:44 [__init__.py:216] Automatically detected platform cuda.
+INFO 09-20 16:26:46 [arg_utils.py:486] HF_HUB_OFFLINE is True, replace model_id [/root/autodl-tmp/models/Qwen3-0.6B] to model_path [/root/autodl-tmp/models/Qwen3-0.6B]
+INFO 09-20 16:26:46 [arg_utils.py:486] HF_HUB_OFFLINE is True, replace model_id [/root/autodl-tmp/models/Qwen3-0.6B] to model_path [/root/autodl-tmp/models/Qwen3-0.6B]
+INFO 09-20 16:26:46 [utils.py:328] non-default args: {'dtype': 'float32', 'seed': 0, 'max_model_len': 1024, 'block_size': 16, 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.4, 'max_num_batched_tokens': 512, 'max_num_seqs': 4, 'disable_log_stats': True, 'enforce_eager': True, 'num_gpu_blocks_override': 256, 'enable_chunked_prefill': True, 'generation_config': 'vllm', 'model': '/root/autodl-tmp/models/Qwen3-0.6B'}
+INFO 09-20 16:26:58 [__init__.py:742] Resolved architecture: Qwen3ForCausalLM
+INFO 09-20 16:26:58 [__init__.py:2761] Upcasting torch.bfloat16 to torch.float32.
+INFO 09-20 16:26:58 [__init__.py:1815] Using max model len 1024
+INFO 09-20 16:27:01 [scheduler.py:222] Chunked prefill is enabled with max_num_batched_tokens=512.
+INFO 09-20 16:27:01 [__init__.py:3400] Cudagraph is disabled under eager mode
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:02 [core.py:654] Waiting for init message from front-end.
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:02 [core.py:76] Initializing a V1 LLM engine (v0.10.2) with config: model='/root/autodl-tmp/models/Qwen3-0.6B', speculative_config=None, tokenizer='/root/autodl-tmp/models/Qwen3-0.6B', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.float32, max_seq_len=1024, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto, device_config=cuda, decoding_config=DecodingConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_backend=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=/root/autodl-tmp/models/Qwen3-0.6B, enable_prefix_caching=False, chunked_prefill_enabled=True, use_async_output_proc=True, pooler_config=None, compilation_config={"level":0,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":null,"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":0,"use_cudagraph":true,"cudagraph_num_of_warmups":0,"cudagraph_capture_sizes":[],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"pass_config":{},"max_capture_size":0,"local_cache_dir":null}
+[W920 16:27:06.084633285 ProcessGroupNCCL.cpp:981] Warning: TORCH_NCCL_AVOID_RECORD_STREAMS is the default now, this environment variable is thus deprecated. (function operator())
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:06 [parallel_state.py:1165] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+[1;36m(EngineCore_DP0 pid=2824)[0;0m WARNING 09-20 16:27:06 [topk_topp_sampler.py:69] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:06 [gpu_model_runner.py:2338] Starting to load model /root/autodl-tmp/models/Qwen3-0.6B...
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:06 [gpu_model_runner.py:2370] Loading model from scratch...
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:06 [cuda.py:379] Using FlexAttention backend for dtype=torch.float32 on V1 engine.
+[1;36m(EngineCore_DP0 pid=2824)[0;0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+[1;36m(EngineCore_DP0 pid=2824)[0;0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.22it/s]
+[1;36m(EngineCore_DP0 pid=2824)[0;0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.22it/s]
+[1;36m(EngineCore_DP0 pid=2824)[0;0m 
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:07 [default_loader.py:268] Loading weights took 0.86 seconds
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:08 [gpu_model_runner.py:2392] Model loading took 2.2406 GiB and 1.031768 seconds
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:09 [gpu_worker.py:298] Available KV cache memory: 10.30 GiB
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:09 [kv_cache_utils.py:802] Overriding num_gpu_blocks=3013 with num_gpu_blocks_override=256
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:09 [kv_cache_utils.py:864] GPU KV cache size: 4,096 tokens
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:09 [kv_cache_utils.py:868] Maximum concurrency for 1,024 tokens per request: 4.00x
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:09 [gpu_worker.py:391] Free memory on device (31.18/31.47 GiB) on startup. Desired GPU memory utilization is (0.4, 12.59 GiB). Actual usage is 2.24 GiB for weight, 0.04 GiB for peak activation, 0.01 GiB for non-torch memory, and 0.0 GiB for CUDAGraph memory. Replace gpu_memory_utilization config with `--kv-cache-memory=10904139366` to fit into requested memory, or `--kv-cache-memory=30870179840` to fully utilize gpu memory. Current kv cache memory in use is 11061425766 bytes.
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:09 [core.py:218] init engine (profile, create kv cache, warmup model) took 1.62 seconds
+[1;36m(EngineCore_DP0 pid=2824)[0;0m INFO 09-20 16:27:10 [__init__.py:3400] Cudagraph is disabled under eager mode
+INFO 09-20 16:27:10 [llm.py:295] Supported_tasks: ['generate']
+INFO 09-20 16:27:10 [__init__.py:36] No IOProcessor plugins requested by the model
+[1;36m(EngineCore_DP0 pid=2824)[0;0m WARNING 09-20 16:27:12 [cudagraph_dispatcher.py:102] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+{"quality": "kv_cache", "token_ids": [82707, 19479, 9909, 1592, 12, 1130, 19479, 7552, 18493, 26288, 102064, 104949, 113272, 15946, 113078, 99982, 24360, 104949, 9370, 60949, 25511, 32664, 9909, 1592, 12, 1130, 25995, 48272, 23031, 100627, 113272, 101991, 33108, 100768, 101149, 1773, 99652, 67338, 98841, 54542, 33108, 105653, 104949, 9370, 31196, 33108, 66017, 9370, 60949, 25511, 32664, 3837, 101940, 105444, 100768, 3837, 101982, 100710, 104949, 9370, 113272, 100178, 1773, 151645], "finish_reason": "stop", "text": "KV Cache（Key-Value Cache）在大语言模型推理中主要用于缓存模型的键值对（Key-Value Pair），以提高推理效率和计算速度。它通过预处理和存储模型的输入和输出的键值对，减少重复计算，从而加快模型的推理过程。"}
+{"quality": "arithmetic", "token_ids": [16, 22, 24768, 220, 17, 18, 284, 220, 18, 24, 16, 151645], "finish_reason": "stop", "text": "17 × 23 = 391"}
+{"quality": "retrieval", "token_ids": [30709, 30858, 9370, 64689, 100085, 32867, 20412, 3070, 22, 18, 24, 17, 334, 1773, 151645], "finish_reason": "stop", "text": "小明的门禁密码是 **7392**。"}
+{"quality": "python", "token_ids": [73594, 12669, 198, 750, 374, 68347, 1445, 982, 262, 470, 308, 1018, 220, 17, 621, 220, 15, 198, 73594, 151645], "finish_reason": "stop", "text": "```python\ndef is_even(n):\n    return n % 2 == 0\n```"}
+{"name": "input128_batch1", "batch": 1, "prompt_tokens": 128, "new_tokens": 32, "samples_s": [0.7659749165177345, 0.7092848643660545, 0.7243365701287985, 0.7243846170604229, 0.7360794954001904], "median_s": 0.7243846170604229, "output_tokens_per_s": 44.17542731630204}
+{"name": "input128_batch4", "batch": 4, "prompt_tokens": 128, "new_tokens": 32, "samples_s": [0.8681743405759335, 0.9586752615869045, 0.8189654983580112, 0.8482220359146595, 0.8365305289626122], "median_s": 0.8482220359146595, "output_tokens_per_s": 150.90388433728242}
+{"name": "input512_batch1", "batch": 1, "prompt_tokens": 512, "new_tokens": 32, "samples_s": [0.80546760186553, 0.7467349916696548, 0.7298443038016558, 0.7337779514491558, 0.7535436395555735], "median_s": 0.7467349916696548, "output_tokens_per_s": 42.85322150024055}
+{"name": "input512_batch4", "batch": 4, "prompt_tokens": 512, "new_tokens": 32, "samples_s": [1.2138931564986706, 1.0450822487473488, 1.2128415871411562, 1.1889878548681736, 1.127455836161971], "median_s": 1.1889878548681736, "output_tokens_per_s": 107.6545899740849}

@@ -56,12 +56,27 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--runs', type=int, default=3)
     parser.add_argument('--dtype', choices=['float32', 'bfloat16'], default='float32')
+    parser.add_argument('--batch-decode', action='store_true',
+                        help='Enable qil cross-request decode; omit to reproduce the sequential baseline')
+    parser.add_argument('--selective-logits', action='store_true',
+                        help='Skip unused qil prefill logits; omit for the original full-logits baseline')
+    parser.add_argument('--sdpa-backend', choices=['auto', 'math', 'efficient'], default='auto',
+                        help='Pin qil attention to the backend used in numerical acceptance')
+    parser.add_argument('--decode-attention', choices=['dense', 'grouped', 'paged'], default='dense')
     args = parser.parse_args()
     if args.prepare:
         prepare(args.model, args.workload)
         return
     if not args.backend or not args.output or args.runs < 1:
         parser.error('--backend, --output and positive --runs required')
+    if args.batch_decode and args.backend != 'qil':
+        parser.error('--batch-decode applies only to the qil backend')
+    if args.selective_logits and args.backend != 'qil':
+        parser.error('--selective-logits applies only to the qil backend')
+    if args.decode_attention != 'dense' and (args.backend != 'qil' or not args.batch_decode):
+        parser.error('--decode-attention requires qil --batch-decode')
+    if args.sdpa_backend != 'auto' and args.backend != 'qil':
+        parser.error('--sdpa-backend applies only to the qil backend')
     import torch
     from transformers import AutoTokenizer
     torch.manual_seed(0)
@@ -77,11 +92,21 @@ def main():
         eos = model.config.eos_token_id
         assert eos == workload['eos_token_id'] or eos == [workload['eos_token_id']]
         engine = Engine(model, num_pages=256, page_size=16, token_budget=512,
-                        prefill_chunk=128, max_active=4)
+                        prefill_chunk=128, max_active=4, batch_decode=args.batch_decode,
+                        selective_logits=args.selective_logits, decode_attention=args.decode_attention)
         config['prefill_chunk'] = 128
+        config['batch_decode'] = args.batch_decode
+        config['selective_logits'] = args.selective_logits
+        config['sdpa_backend'] = args.sdpa_backend
+        config['decode_attention'] = args.decode_attention
 
         def generate(prompts, limit, ignore_eos):
-            rows = engine.generate(prompts, max_new_tokens=limit, ignore_eos=ignore_eos)
+            from contextlib import nullcontext
+            from torch.nn.attention import sdpa_kernel, SDPBackend
+            backends = {'math': SDPBackend.MATH, 'efficient': SDPBackend.EFFICIENT_ATTENTION}
+            context = nullcontext() if args.sdpa_backend == 'auto' else sdpa_kernel(backends[args.sdpa_backend])
+            with context:
+                rows = engine.generate(prompts, max_new_tokens=limit, ignore_eos=ignore_eos)
             assert engine.idle and not engine.pool.tables and len(engine.pool.free) == 256
             assert all(row['state'] == 'completed' for row in rows)
             return [dict(token_ids=row['token_ids'], finish_reason=row['finish_reason']) for row in rows]

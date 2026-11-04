@@ -1,0 +1,26 @@
+{
+  "state": "completed",
+  "steps": [
+    {
+      "name": "full-reduction-short",
+      "returncode": 1
+    },
+    {
+      "name": "full-reduction-long",
+      "returncode": 1
+    },
+    {
+      "name": "qil-bf16",
+      "returncode": 0
+    },
+    {
+      "name": "qil-fp32",
+      "returncode": 0
+    },
+    {
+      "name": "vllm-bf16",
+      "returncode": 0
+    }
+  ],
+  "current": "vllm-bf16"
+}

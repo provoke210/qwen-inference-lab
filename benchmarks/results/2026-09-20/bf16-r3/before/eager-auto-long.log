@@ -1,0 +1,2 @@
+{"passed": false, "dtype": "bfloat16", "max_logit_abs_error": 0.5, "generation_exact": [[true, true, true, true], [true, true, true, true]]}
+Correctness checks differ; inspect the saved report

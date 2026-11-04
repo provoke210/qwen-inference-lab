@@ -1,0 +1,23 @@
+START layers128
+DONE layers128 0
+START layers512
+DONE layers512 0
+START eager-auto-short
+DONE eager-auto-short 1
+START eager-auto-long
+DONE eager-auto-long 1
+START sdpa-auto-short
+DONE sdpa-auto-short 1
+START sdpa-auto-long
+DONE sdpa-auto-long 1
+START sdpa-math-short
+DONE sdpa-math-short 1
+START sdpa-math-long
+DONE sdpa-math-long 1
+START sdpa-efficient-short
+DONE sdpa-efficient-short 1
+START sdpa-efficient-long
+DONE sdpa-efficient-long 1
+START fp32-regression
+DONE fp32-regression 0
+ARCHIVED

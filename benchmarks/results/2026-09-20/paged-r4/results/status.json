@@ -1,0 +1,50 @@
+{
+  "state": "completed",
+  "steps": [
+    {
+      "name": "kernel-tests",
+      "returncode": 0
+    },
+    {
+      "name": "float32-grouped-short",
+      "returncode": 0
+    },
+    {
+      "name": "float32-grouped-long",
+      "returncode": 0
+    },
+    {
+      "name": "float32-paged-short",
+      "returncode": 0
+    },
+    {
+      "name": "float32-paged-long",
+      "returncode": 0
+    },
+    {
+      "name": "float32-profile",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-grouped-short",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-grouped-long",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-paged-short",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-paged-long",
+      "returncode": 1
+    }
+  ],
+  "current": "bfloat16-paged-long",
+  "accepted": {
+    "float32": true,
+    "bfloat16": false
+  }
+}

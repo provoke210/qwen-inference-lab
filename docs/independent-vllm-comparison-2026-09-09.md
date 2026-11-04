@@ -12,7 +12,7 @@
 | 项目 | 配置 |
 |---|---|
 | 硬件 | NVIDIA GeForce RTX 4080 SUPER，单 GPU |
-| 模型 | `/root/autodl-tmp/models/Qwen3-0.6B`，同一份权重 |
+| 模型 | Qwen3-0.6B，同一份本地权重 |
 | 软件 | Python 3.12.3、PyTorch 2.8.0+cu128、vLLM 0.10.2 |
 | 数值与采样 | FP32 权重/KV，贪心解码，seed=0，无量化 |
 | 输入 | 预先生成同一份 token IDs；两个报告中的 workload SHA-256 一致 |
@@ -30,7 +30,7 @@
 
 两个环境的 Transformers 分别为 4.51.3（qil）、4.55.2（vLLM），
 已通过共享 token 输入、核对 EOS ID 和原始输出 ID 避免 tokenizer 差异干扰。
-新核心所有源码及 benchmark 脚本的 SHA-256 已与服务器报告逐一核对。
+新核心所有源码及 benchmark 脚本的 SHA-256 记录在结果 JSON 中。
 
 ## 回答内容与一致性
 
@@ -80,7 +80,6 @@ KV Cache 解释中的“预处理”“输入和输出的键值对”不够准�
 
 ## 复现与原始数据
 
-服务器本次源码目录为 `/root/autodl-tmp/qil-vllm-compare`，分别在既有 qil-env 和 vllm-env 下运行。
 模型路径可按环境替换。两个后端必须分开进程依次运行，避免相互占用 GPU。
 
 ```bash
@@ -104,4 +103,4 @@ python -m benchmarks.summarize_independent \
 - [逐项对比摘要](../benchmarks/results/2026-09-09/independent_vs_vllm_summary.json)
 - [运行脚本](../benchmarks/compare_independent.py)与[核对脚本](../benchmarks/summarize_independent.py)
 
-不要与历史 `compare_offline.py` / `vllm-comparison-2026-09-09.md` 的旧引擎 BF16 结果混用。
+不要与 `legacy-nano-vllm` 标签中旧引擎的结果混用。

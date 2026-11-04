@@ -1,0 +1,7 @@
+{"name": "input128_batch1", "prompt_tokens": 128, "batch": 1, "new_tokens": 32, "outputs_exact": true, "speedup": 0.985567007269763}
+{"name": "input128_batch4", "prompt_tokens": 128, "batch": 4, "new_tokens": 32, "outputs_exact": true, "speedup": 0.9929454061813358}
+{"name": "input512_batch1", "prompt_tokens": 512, "batch": 1, "new_tokens": 32, "outputs_exact": true, "speedup": 1.0116931235508566}
+{"name": "input512_batch4", "prompt_tokens": 512, "batch": 4, "new_tokens": 32, "outputs_exact": true, "speedup": 0.9067957354725461}
+{"name": "input2048_batch1", "prompt_tokens": 2048, "batch": 1, "new_tokens": 32, "outputs_exact": true, "speedup": 1.0102702833367458}
+{"name": "input2048_batch4", "prompt_tokens": 2048, "batch": 4, "new_tokens": 32, "outputs_exact": true, "speedup": 1.0336940097695801}
+COMPLETE

@@ -1,0 +1,78 @@
+{
+  "full": [
+    {
+      "category": "cpu_op",
+      "name": "aten::index_select",
+      "count": 912,
+      "total_us": 43290.72700000003
+    },
+    {
+      "category": "cpu_op",
+      "name": "aten::item",
+      "count": 900,
+      "total_us": 21859.43300000002
+    },
+    {
+      "category": "cpu_op",
+      "name": "aten::_local_scalar_dense",
+      "count": 900,
+      "total_us": 20074.53099999999
+    },
+    {
+      "category": "cpu_op",
+      "name": "aten::repeat_interleave",
+      "count": 896,
+      "total_us": 38136.43499999996
+    },
+    {
+      "category": "cuda_runtime",
+      "name": "cudaMemcpyAsync",
+      "count": 1816,
+      "total_us": 13609.789999999994
+    },
+    {
+      "category": "cuda_runtime",
+      "name": "cudaStreamSynchronize",
+      "count": 1816,
+      "total_us": 23486.632000000016
+    }
+  ],
+  "selected": [
+    {
+      "category": "cpu_op",
+      "name": "aten::index_select",
+      "count": 912,
+      "total_us": 43293.10799999999
+    },
+    {
+      "category": "cpu_op",
+      "name": "aten::item",
+      "count": 900,
+      "total_us": 19477.257999999998
+    },
+    {
+      "category": "cpu_op",
+      "name": "aten::_local_scalar_dense",
+      "count": 900,
+      "total_us": 17932.520000000008
+    },
+    {
+      "category": "cpu_op",
+      "name": "aten::repeat_interleave",
+      "count": 896,
+      "total_us": 37280.166000000005
+    },
+    {
+      "category": "cuda_runtime",
+      "name": "cudaMemcpyAsync",
+      "count": 1816,
+      "total_us": 13588.573999999991
+    },
+    {
+      "category": "cuda_runtime",
+      "name": "cudaStreamSynchronize",
+      "count": 1816,
+      "total_us": 8239.071999999998
+    }
+  ]
+}

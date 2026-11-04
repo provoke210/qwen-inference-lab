@@ -1,0 +1,1 @@
+{"python": "3.12.3", "torch": "2.8.0+cu128", "transformers": "4.51.3", "gpu": "NVIDIA GeForce RTX 4080 SUPER", "memory_bytes": 33794359296}

@@ -1,0 +1,69 @@
+{
+  "scope": "CPU FP32 correctness and batched call structure only; no real checkpoint, GPU, BF16 or performance claim",
+  "test_timestamp": "2026-09-19T18:49:25.437227+08:00",
+  "base_commit": "6caa7a3ce3b5733c9d2918438532e375c37dc9f0",
+  "working_tree_changes": true,
+  "environment": {
+    "python": "3.12.14",
+    "platform": "macOS-26.5-arm64-arm-64bit",
+    "torch": "2.8.0",
+    "transformers": "4.55.2",
+    "device": "cpu",
+    "dtype": "float32",
+    "cuda_available": false
+  },
+  "command": "python -m pytest tests -q --junitxml=benchmarks/results/2026-09-19/batched_decode_all_tests.xml",
+  "results": {
+    "passed": 93,
+    "skipped_modules": 1,
+    "failed": 0,
+    "errors": 0,
+    "independent_core_passed": 49,
+    "new_batch_decode_cases_passed": 19
+  },
+  "fixture": {
+    "seed": 20260909,
+    "layers": 2,
+    "hidden_size": 24,
+    "query_heads": 4,
+    "kv_heads": 2,
+    "head_dim": 8,
+    "vocab_size": 97,
+    "trained_weights": false
+  },
+  "numerical_assertions": {
+    "logits_and_kv_atol": 2e-06,
+    "logits_and_kv_rtol": 2e-05,
+    "references": [
+      "sequential qil",
+      "Transformers 4.55.2 eager"
+    ],
+    "greedy_token_sequences": "exact match in tested cases"
+  },
+  "decode_call_structure": {
+    "batch_size": 4,
+    "query_projection_calls_per_layer_sequential": 4,
+    "query_projection_calls_per_layer_batched": 1,
+    "sdpa_calls_per_layer_sequential": 4,
+    "sdpa_calls_per_layer_batched": 1,
+    "gpu_kernel_counts_measured": false
+  },
+  "source_sha256": {
+    "benchmarks/compare_independent.py": "3e3b894b10dd19864ed4e4c53c94899bdfc3a6b9b6e69b4fbd9a5cda55321c67",
+    "qil/__init__.py": "15053195e4cc5ccdfd2c2787a40e8907ebcc32d372c2533047d94eea4d9d525a",
+    "qil/__main__.py": "44db38aff1a9ce013d70a38b3fa8d9bd64b73d7268f5fef4d5ababd9f6467cf5",
+    "qil/cache.py": "b1ec901c9e73dedaaffbd1fbb2457b20242aa8795ce669444ed95fbde51c9c7d",
+    "qil/config.py": "6d67eb60edbf26f0c593daea0c7ca111c03b8643ce8d2fce7e62ccc12ed9b018",
+    "qil/engine.py": "5a016240d87a9579772338df2c56ba4deea8516ff805c8252e05d2a9f0ec218e",
+    "qil/model.py": "1e0ee3dafddaccbbacb0717d8c234888fd66930af0d6fb087a23aa60413354a0",
+    "qil/scheduler.py": "4b7cc79360b3c5bc8adbdd55f7ec907b59e6e8ee3dc26d6ee23f20a0a6365642",
+    "tests/qil/conftest.py": "6fa3cae799af8dafc06c97eb557e4c5e3caf586c9469a9ff9518038156a37ca8",
+    "tests/qil/test_batch_decode.py": "6b5c909eb669a412a4d49c9e06c022dae7e07676a9bd191eab53072d61c86e25",
+    "tests/qil/test_cache.py": "1df222a3358926fb803bdab51cd4945e5163844b9a896d841716fd8ac0ae90f4",
+    "tests/qil/test_engine.py": "ebcef8649396c895b179625cd76e69a9c4b4fd0e2d6caae78bf5f33e9b896e80",
+    "tests/qil/test_independence.py": "25794d30890651d8ae4a1f4e38d00d56c2f0a7070dfdcdd09ecd4cae7c246824",
+    "tests/qil/test_model.py": "6a14c11caf479e5fa516a2b058f0eb370001224f4e63cafeb392fb5b1de6cfda"
+  },
+  "junit_sha256": "8bdd61aad440f1ca85af82c217f8b095c85e6a99633ef52b3242d3c29677fa0a",
+  "gpu_validation_pending": true
+}

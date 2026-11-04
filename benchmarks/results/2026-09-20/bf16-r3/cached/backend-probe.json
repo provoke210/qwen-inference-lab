@@ -1,0 +1,30 @@
+{
+  "qil": [
+    {
+      "name": "aten::scaled_dot_product_attention",
+      "count": 28
+    },
+    {
+      "name": "aten::_scaled_dot_product_efficient_attention",
+      "count": 28
+    },
+    {
+      "name": "aten::_efficient_attention_forward",
+      "count": 28
+    }
+  ],
+  "hf": [
+    {
+      "name": "aten::scaled_dot_product_attention",
+      "count": 28
+    },
+    {
+      "name": "aten::_scaled_dot_product_flash_attention",
+      "count": 28
+    },
+    {
+      "name": "aten::_flash_attention_forward",
+      "count": 28
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "scope": "Fixed same SDPA backend and cached HF reference; no tolerance changes",
+  "gates": [
+    {
+      "file": "/root/autodl-tmp/qil-bf16-20260920-r3-cached/results/cached-math-batched-short.json",
+      "sha256": "b0fb070ae1f8ae47ec58c5aa04da1d1bb6ae6d81784e36205e2da6d6ba6bc776",
+      "passed": true
+    },
+    {
+      "file": "/root/autodl-tmp/qil-bf16-20260920-r3-cached/results/cached-math-batched-long.json",
+      "sha256": "9ff591981dbeb6c536db8c54e2013dde60399212b1ea7eadd34c0bb2851bffbf",
+      "passed": true
+    },
+    {
+      "file": "/root/autodl-tmp/qil-bf16-20260920-r3-cached/results/cached-efficient-batched-short.json",
+      "sha256": "3f854dc2ac3a4a70920155f30227947b8bff906657dcd150d62441917a9ce6c3",
+      "passed": true
+    },
+    {
+      "file": "/root/autodl-tmp/qil-bf16-20260920-r3-cached/results/cached-efficient-batched-long.json",
+      "sha256": "6330efde8d26bdac985b5af6e54e7d3bfc665081202135a8376555fc9b29f495",
+      "passed": true
+    }
+  ]
+}

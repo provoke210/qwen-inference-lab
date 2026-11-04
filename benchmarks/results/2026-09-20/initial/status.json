@@ -1,0 +1,44 @@
+{
+  "started_at": "2026-09-20 15:57:32 +0800",
+  "state": "failed",
+  "steps": [
+    {
+      "label": "environment",
+      "returncode": 0,
+      "elapsed_s": 3.221
+    },
+    {
+      "label": "prepare",
+      "returncode": 0,
+      "elapsed_s": 4.374
+    },
+    {
+      "label": "float32-correctness",
+      "returncode": 0,
+      "elapsed_s": 18.752
+    },
+    {
+      "label": "float32-sequential",
+      "returncode": 0,
+      "elapsed_s": 95.114
+    },
+    {
+      "label": "float32-batched",
+      "returncode": 0,
+      "elapsed_s": 46.965
+    },
+    {
+      "label": "float32-vllm",
+      "returncode": 0,
+      "elapsed_s": 69.426
+    },
+    {
+      "label": "bfloat16-correctness",
+      "returncode": 1,
+      "elapsed_s": 17.757
+    }
+  ],
+  "current_step": "bfloat16-correctness",
+  "error": "bfloat16-correctness failed; see bfloat16-correctness.log",
+  "finished_at": "2026-09-20 16:01:47 +0800"
+}

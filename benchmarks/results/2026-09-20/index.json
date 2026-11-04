@@ -1,0 +1,31 @@
+{
+  "fp32_correctness": "passed",
+  "fp32_performance": "completed",
+  "bf16_strict_correctness": "failed",
+  "bf16_performance": "not run because the correctness gate failed",
+  "uploaded_archive": "artifacts/baselines/qil-batched-20260920-d7a076ee.tar.gz",
+  "uploaded_archive_sha256": "42a9c7e2f4dc4710fe2d67c1cc2b16a1ef60245ea903779f2085b499a02d798c",
+  "remote_run": "/root/autodl-tmp/qil-batched-20260920-d7a076ee",
+  "original_orchestrator_status_preserved": true,
+  "artifact_sha256": {
+    "bf16_diagnostic.json": "c3ed8e85faa6c63c3241f052d8952abad7090a6983a766136e7ad72dfff25bc1",
+    "bf16_diagnostic.py": "10ebbeb220777c8728d22d23777a8cfca08f6368d0816e85ee0daf8471eb4297",
+    "initial/bfloat16-correctness.json": "13e073065116e071b4a0d77f4c4eab4d4589a1bc1b9bc15088db3c58d128f3e3",
+    "initial/bfloat16-correctness.log": "365e6eecd7a1e003b6c2af1ab15507e774d5161cfb8f84973a216f26b38e8e85",
+    "initial/environment.log": "8fe95858cef37d91b439e21cb3bad6ff308273c5c1704424104636739a078004",
+    "initial/float32-batched.json": "7bb24118b57d2455415045e542b075ae4a5b93aa117dc930253016caeb0a88d4",
+    "initial/float32-batched.log": "4a4a31c735480b238f3fda9d82bf1213c9871b23f6e1c776cfa1be8b0960883a",
+    "initial/float32-correctness.json": "68595b50a278fdce73b4caf2b433327a999803e4c88327163b76250c579329a4",
+    "initial/float32-correctness.log": "bc6a6471a3ceb7e8947852fab46ae6ba5397bab433a8a6134314ecff9ba25fe7",
+    "initial/float32-sequential.json": "528c11e305b8305852102cce8f00e9b4626b7fc3a4bad1be0208254fa9bc2c85",
+    "initial/float32-sequential.log": "685d4fe80c97ce6e2e0b8933056adffd5b61d120d09e412384fc48a7c8e7e023",
+    "initial/float32-vllm.json": "25a171c34fe223fa5e828068b3057e2a6b55494c90a2e4ba4c63ee3eaf9ae8c9",
+    "initial/float32-vllm.log": "2bf04256851a353cc8776dbe1d9488c5cb111e8c5e2577bfd4b3f3590bd28396",
+    "initial/manifest.json": "cbc3c20291d7f5ff779c22257fedf4476a6a79ec344a3ca8e43b015dd9c84fe3",
+    "initial/prepare.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial/status.json": "b78717d6e94d296b50bf47df64ddf7b541cfd238d8a2cb485bbede3cd00470a6",
+    "initial/summary.json": "881952a78a4e78385129edb9f66d196b50846499ebe8d144bbbbc981dcf40be1",
+    "initial/workload.json": "5ec0a3dd891c04366e7156d61d47366a77bb3c7867e4dbf801fc36b1908e8f70",
+    "run_gpu_checks.py": "5807c6595cad0122a692685b4080bf8dccb1c6a6313edc2f46b208da0f79c3d3"
+  }
+}

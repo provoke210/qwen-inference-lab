@@ -6,53 +6,22 @@
 - [x] 30 项独立核心单元测试及真实 Qwen3-0.6B Float32 GPU 正确性验证。
 - [x] 与 vLLM 0.10.2 的同机 FP32 eager 对照，保存输出、全部采样与源码哈希。
 - [x] 固定优化前源码及结果基线，见 artifacts/baselines。
-- [ ] BF16 数值验证、长上下文与持续请求压力测试。
-- [ ] Profiling 并实现跨请求 GPU 合批、减少同步和 KV gather 开销。
-- [ ] 独立 paged-attention kernel 与 CUDA Graph，逐项进行正确性和性能回归。
+- [x] 跨请求 Decode 合批及 CPU 正确性、KV 隔离、生命周期验证，见 BATCHED_DECODE.md。
+- [ ] 长上下文与持续请求压力测试。
+- [x] Decode 合批的真实模型 FP32 CUDA 验收、逐请求/vLLM 对照，见 batched-gpu-validation-2026-09-20.md。
+- [x] BF16 逐层定位、RoPE 修复、同后端/同缓存参考验收与通过后的性能对照，见 [BF16 报告](bf16-gpu-validation-2026-09-20.md)。
+- [ ] 扩展 BF16 后端、执行形状及负载覆盖；当前跨路径比较仍有数值阈值失败。
+- [x] Prefill 按需 logits、CPU/GPU 正确性、性能消融与输出投影 profiler，见 prefill-gpu-validation-2026-09-20.md。
+- [ ] 消除 Prefill 每层位置标量读取、复用 KV 索引，单独测量收益。
+- [ ] GPU profiling，量化合批、KV 读写及同步减少各自的贡献。
+- [ ] Prefill 合批，继续减少同步和 KV gather 开销。
+- [x] Decode 长度分组与独立 Triton paged-attention，完成 CPU/GPU 验收和配对消融，见 [分页报告](paged-gpu-validation-2026-09-20.md)。
+- [ ] 扩展分页内核模型/精度覆盖；BF16 + Efficient 长组 logits 未通过，BF16 + MATH 扩展混合负载出现生成分歧。
+- [ ] CUDA Graph，进行正确性和性能回归。
 
 已完成内容与测试边界见 [独立核心设计](INDEPENDENT_CORE.md)和
-[vLLM 对照报告](independent-vllm-comparison-2026-09-09.md)。当前性能基线已冻结，尚未开展上述优化。
-
-## 历史 nano_vllm 实验：混合请求延迟与公平性
-
-- [x] Decode 轮转修复，以及与历史调度器的 CPU 公平性对照。
-- [x] 请求级指标：逐 token 时间戳、TTFT、E2E、TPOT 和分组 P50/P95。
-- [x] 计划到达 JSONL 回放入口与 CPU 集成验证。
-- [ ] 同机 GPU 回放固定/自适应 Prefill，验证输出一致性并记录各组收益与代价。
-- [ ] 增加原版 nano-vLLM 的同等计时适配器，完成跨引擎混合负载对照。
-- [ ] 扩展到达速率与长短比例，给出适用范围和失败场景。
-
-以下基础项按具体范围验收；新增计时入口已通过 CPU 测试，尚不代表真实 GPU 指标已验证。
-
-## 1. 可复现基线
-
-- [ ] 在 NVIDIA 环境记录 GPU、驱动、CUDA、Python 和依赖版本。
-- [ ] 跑通 Qwen3-0.6B 单卡 FP16 KV Cache 路径。
-- [ ] 对齐 Transformers 的首步 logits 和贪心生成结果，记录误差。
-- [ ] 验证不同长度、多请求、EOS、最大输出长度和缓存块边界。
-
-## 2. 调度与缓存
-
-- [x] 为本轮 Decode 和 Prefill 设置统一且严格的 Token 预算。
-- [x] 用 CPU 可运行测试覆盖预算边界、缓存不足、抢占恢复和释放。
-- [ ] 检查长请求阻塞与短请求饥饿，用到达时间可控的请求序列测试。
-- [ ] 对比分块开启/关闭时的吞吐、TTFT 和 Token 间延迟。
-
-## 3. 性能统计
-
-- [ ] 根据实际生成 Token 数统计吞吐，包含首 Token。
-- [ ] 记录每个请求的真实 Token 到达时间，包含调度等待。
-- [ ] 分别统计前缀共享比例、实际命中的块数和命中的 Token 数。
-- [ ] 明确离线全部到达与在线分时到达的差别。
-- [ ] 固定数据集、随机种子、预热、重复次数和计时边界。
-
-## 4. 对标与优化
-
-- [ ] 同机对比 vLLM、上游基线和本地修改版，记录各自 commit/version。
-- [ ] 对齐模型、精度、Token 数、缓存预算和功能开关。
-- [ ] 首轮负载：输入 128/512/1024，输出 128/256；按显存逐步增加并发。
-- [ ] 测量吞吐、TTFT、Token 间延迟和峰值显存，保存原始数据。
-- [ ] 分别验证 CUDA Graph 和已有融合算子的收益。
-- [ ] FP8 KV Cache、多卡 TP、在线 API 放在基础验收之后。
+[vLLM 对照报告](independent-vllm-comparison-2026-09-09.md)。历史性能基线保持冻结；
+Decode 合批新增 FP32 GPU 实测；BF16 已在同后端、同缓存参考条件下通过验收，
+原跨路径失败与各版本结果独立保留，不宣称任意执行方式均通过。
 
 只有实际通过的项目才勾选。最终结论限定在已测试的模型、硬件和负载范围内。

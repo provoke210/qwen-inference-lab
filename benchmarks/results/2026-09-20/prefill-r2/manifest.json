@@ -1,0 +1,26 @@
+{
+  "name": "qil-prefill-20260920-r2",
+  "sha256": {
+    "pyproject.toml": "3fbc7bdae7b9b546949114ba7b985a422ca9be27d96cb1a4241f03d9bf7d3556",
+    "qil/__init__.py": "15053195e4cc5ccdfd2c2787a40e8907ebcc32d372c2533047d94eea4d9d525a",
+    "qil/__main__.py": "44db38aff1a9ce013d70a38b3fa8d9bd64b73d7268f5fef4d5ababd9f6467cf5",
+    "qil/cache.py": "b1ec901c9e73dedaaffbd1fbb2457b20242aa8795ce669444ed95fbde51c9c7d",
+    "qil/config.py": "6d67eb60edbf26f0c593daea0c7ca111c03b8643ce8d2fce7e62ccc12ed9b018",
+    "qil/engine.py": "5a92aeaef55552410e082bf45729c0226721ff29820ff408b1f6ac0a7a356d40",
+    "qil/model.py": "ca5f69e753e5526fede4bb3bfaae9a9e684a6da756b13fdb3d30bc59a2542537",
+    "qil/scheduler.py": "4b7cc79360b3c5bc8adbdd55f7ec907b59e6e8ee3dc26d6ee23f20a0a6365642",
+    "tests/qil/conftest.py": "6fa3cae799af8dafc06c97eb557e4c5e3caf586c9469a9ff9518038156a37ca8",
+    "tests/qil/test_cache.py": "1df222a3358926fb803bdab51cd4945e5163844b9a896d841716fd8ac0ae90f4",
+    "tests/qil/test_engine.py": "ebcef8649396c895b179625cd76e69a9c4b4fd0e2d6caae78bf5f33e9b896e80",
+    "tests/qil/test_independence.py": "25794d30890651d8ae4a1f4e38d00d56c2f0a7070dfdcdd09ecd4cae7c246824",
+    "tests/qil/test_model.py": "6a14c11caf479e5fa516a2b058f0eb370001224f4e63cafeb392fb5b1de6cfda",
+    "tests/qil/test_batch_decode.py": "6b5c909eb669a412a4d49c9e06c022dae7e07676a9bd191eab53072d61c86e25",
+    "tests/qil/test_selective_logits.py": "1db365c198a6db86a58732a9f46ca4b2bd432c25d3c4675877ff3b0e2afb39e7",
+    "benchmarks/compare_independent.py": "72e80eb9f6d02020ae8f9e7a36e932c5a12837e29f4f6d4b185f73e0b80465e9",
+    "benchmarks/validate_batched.py": "9adf270d9a67f168624f1da84d5a8c4b6949a9e19b80290ae1f83de568701153",
+    "benchmarks/profile_prefill.py": "8894ea5294f157e7f9b3457c63eab7b1974babfb383ca7a2bf6f4ddca489a595",
+    "run_round2.py": "49cbc5da7feea3dce91f5e701f78996f8e6ee18bc6d8a87db408cdeedb21bf75",
+    "workload.json": "5ec0a3dd891c04366e7156d61d47366a77bb3c7867e4dbf801fc36b1908e8f70",
+    "extended-workload.json": "94e029fea5ed898ee95bce988a22751cb1b3d019edce8397f1f2f9373774fb7e"
+  }
+}

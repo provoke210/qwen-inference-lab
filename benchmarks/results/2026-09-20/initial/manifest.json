@@ -1,0 +1,27 @@
+{
+  "base_commit": "6caa7a3ce3b5733c9d2918438532e375c37dc9f0",
+  "scope": "Independent batched qil GPU validation; no legacy runtime or user scratch files",
+  "sha256": {
+    "README.md": "9a2869976b4866814c5fc3c01c7bf1e28a1cb9078b46fb792750cb1f16cea437",
+    "benchmarks/compare_independent.py": "3e3b894b10dd19864ed4e4c53c94899bdfc3a6b9b6e69b4fbd9a5cda55321c67",
+    "benchmarks/summarize_independent.py": "ef25d43c37d7edc464fed391ffa4e6d969e0b0c8c9a1c0996e20cbb9ea28f886",
+    "benchmarks/validate_batched.py": "9adf270d9a67f168624f1da84d5a8c4b6949a9e19b80290ae1f83de568701153",
+    "docs/BATCHED_DECODE.md": "5f6a3327861510e82fe7d1520f10a96a7d9542d4409534da6136fb2091dd21ff",
+    "pyproject.toml": "3fbc7bdae7b9b546949114ba7b985a422ca9be27d96cb1a4241f03d9bf7d3556",
+    "qil/__init__.py": "15053195e4cc5ccdfd2c2787a40e8907ebcc32d372c2533047d94eea4d9d525a",
+    "qil/__main__.py": "44db38aff1a9ce013d70a38b3fa8d9bd64b73d7268f5fef4d5ababd9f6467cf5",
+    "qil/cache.py": "b1ec901c9e73dedaaffbd1fbb2457b20242aa8795ce669444ed95fbde51c9c7d",
+    "qil/config.py": "6d67eb60edbf26f0c593daea0c7ca111c03b8643ce8d2fce7e62ccc12ed9b018",
+    "qil/engine.py": "5a016240d87a9579772338df2c56ba4deea8516ff805c8252e05d2a9f0ec218e",
+    "qil/model.py": "1e0ee3dafddaccbbacb0717d8c234888fd66930af0d6fb087a23aa60413354a0",
+    "qil/scheduler.py": "4b7cc79360b3c5bc8adbdd55f7ec907b59e6e8ee3dc26d6ee23f20a0a6365642",
+    "tests/__init__.py": "6b7f85c536ca9a1399b090d310106658b91e1af4e9ddaab4049fdd1852e265ba",
+    "tests/qil/conftest.py": "6fa3cae799af8dafc06c97eb557e4c5e3caf586c9469a9ff9518038156a37ca8",
+    "tests/qil/test_batch_decode.py": "6b5c909eb669a412a4d49c9e06c022dae7e07676a9bd191eab53072d61c86e25",
+    "tests/qil/test_cache.py": "1df222a3358926fb803bdab51cd4945e5163844b9a896d841716fd8ac0ae90f4",
+    "tests/qil/test_engine.py": "ebcef8649396c895b179625cd76e69a9c4b4fd0e2d6caae78bf5f33e9b896e80",
+    "tests/qil/test_independence.py": "25794d30890651d8ae4a1f4e38d00d56c2f0a7070dfdcdd09ecd4cae7c246824",
+    "tests/qil/test_model.py": "6a14c11caf479e5fa516a2b058f0eb370001224f4e63cafeb392fb5b1de6cfda",
+    "run_gpu_checks.py": "5807c6595cad0122a692685b4080bf8dccb1c6a6313edc2f46b208da0f79c3d3"
+  }
+}

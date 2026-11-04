@@ -1,0 +1,37 @@
+{
+  "archive_sha256": "319fede54259056c4e5217d26721cbfd50378e85414b82c37fabc53af32bebd6",
+  "source_archive_sha256": "ac31c7de5dad09e5819afe8d9d50feda906f45c4260ea64ec07e9297d33691ab",
+  "source_sha256": {
+    "qil/__init__.py": "15053195e4cc5ccdfd2c2787a40e8907ebcc32d372c2533047d94eea4d9d525a",
+    "qil/__main__.py": "b9f254b2eb9cbaeff4391c39b0621052159948dc2a38c76ed700d361c4bc944a",
+    "qil/cache.py": "6983a8132accd3f3dc07c5b0d643fd92a3e6044279ac8c8aaa08f4948a97ea82",
+    "qil/config.py": "6d67eb60edbf26f0c593daea0c7ca111c03b8643ce8d2fce7e62ccc12ed9b018",
+    "qil/engine.py": "63817e5e74afaaaeb80a6d58f556e775853c48cf6bbad7ea2c66b634cbb25404",
+    "qil/model.py": "7377833a0800a30efbea43df10f7236a2b0a173b044e9ee0393fd2c6c26a270c",
+    "qil/scheduler.py": "4b7cc79360b3c5bc8adbdd55f7ec907b59e6e8ee3dc26d6ee23f20a0a6365642",
+    "qil/attention.py": "373ee90d26de0d638113a387cdaaf8b8227abf70394019eb64bd02dd358af1ce",
+    "qil/paged_attention.py": "9c26882d1f932f9c92b366a5b430ff3b5b5c2981e12cea868c4ffa683e5be619",
+    "benchmarks/validate_batched.py": "a66ecea31dfbf90c91d2923287a26829a92c542ef4d3f088b80e3f6d2e82e430",
+    "benchmarks/profile_paged.py": "2368500bf10ea189699ea42b22e5cd1ce430df462b36b4858eaa85a432465f49",
+    "tests/qil/conftest.py": "6fa3cae799af8dafc06c97eb557e4c5e3caf586c9469a9ff9518038156a37ca8",
+    "tests/qil/test_paged_attention.py": "0ceccd68170de3476a349c141531db0c3c95bba39f656940075ba1159275e6eb",
+    "benchmarks/diagnose_paged.py": "6277fef0f5588d32172208e59215fff3e2cabf011ade091e7eaba77546245216"
+  },
+  "artifact_sha256": {
+    "manifest.json": "fc60cc8f3c678650e75868484a8735305014402152fb083d6a4d07cf9e85e49a",
+    "results/bfloat16-math-profile.json": "9ba015a2f1328226d474ff7388e5cbf5ba46fc8bca8afa7fa7ee2405f0effd5e",
+    "results/bfloat16-math-profile.log": "b8f939f997fe03eebe55671ce218b4d2bf280f81576035952716a17bf9189a5c",
+    "results/bfloat16-paged-math-long.json": "7d17dea10a9cc9f236bcae7805228373bdfe61d6d16104ba38475ec893a0224d",
+    "results/bfloat16-paged-math-long.log": "cd71622e2fe562c99491334953bfca74639917b9edfb49ba118bf3cd1f7c639b",
+    "results/bfloat16-paged-math-short.json": "fdd1c8c2f3ee05a241475e7d02d5d4a84eb6b9dadc1972b5fa6feefa7a293f14",
+    "results/bfloat16-paged-math-short.log": "de78ac063cc42853f23cf00c579d47a4537a7f55d87ea098ebbac70bf2343822",
+    "results/generation-divergence.json": "68d9d7cf3adf13167bb7e36f12ea9422f5d7066355bd8dd0caff20b315f7ece9",
+    "results/generation-divergence.log": "d1817468b8ab94a34f2be4415c630045e20bc86bdb388e0e5d4d4412c78c6ae3",
+    "results/same-input-probe.json": "9067299e77ee68293ae7febf1a74cf28bbfa2bd0e56144670c57437a0d181707",
+    "results/same-input-probe.log": "bac818303ff25bb66f0fb9f522fa9e888923234ba9ad25d4bf69532c7aab9b70",
+    "results/status.json": "744d6019afa9b503a53b2152277eb87200c320e48cb660327ed956fcd6d6bdb0",
+    "run_round4c.py": "aa5d2550271912cda51b3da001d4fc14a28dc896312dda76764427122811f109"
+  },
+  "divergence_download_sha256": "758e2d5c6c00a632e4e07948d22f34f5ce0c509f361bbf6e75edbc82f742d4d4",
+  "diagnostic_source_sha256": "8eb2f49f68f6044e27ae88b25e908aebe258e22098072a22ac57e28eb8e1e25c"
+}

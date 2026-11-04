@@ -1,0 +1,23 @@
+START full-reduction-short
+DONE full-reduction-short 1
+START full-reduction-long
+DONE full-reduction-long 1
+START qil-bf16
+DONE qil-bf16 0
+START qil-fp32
+DONE qil-fp32 0
+START vllm-bf16
+DONE vllm-bf16 0
+Traceback (most recent call last):
+  File "/root/autodl-tmp/qil-bf16-20260920-r3-perf/run_acceptance_perf.py", line 42, in <module>
+    if p.is_file() and (p.suffix in ('.py','.log') or p.name in ('manifest.json','workload.json')):z.write(p,name+'/run/'+p.name)
+                                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/zipfile/__init__.py", line 1841, in write
+    zinfo = ZipInfo.from_file(filename, arcname,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/zipfile/__init__.py", line 573, in from_file
+    zinfo = cls(arcname, date_time)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/zipfile/__init__.py", line 398, in __init__
+    raise ValueError('ZIP does not support timestamps before 1980')
+ValueError: ZIP does not support timestamps before 1980

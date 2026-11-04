@@ -1,0 +1,11 @@
+START hf_eager
+START hf_sdpa
+START hf_math
+START qil_sdpa
+START qil_math
+qil_sdpa hf_eager head {'max_abs': 4.4296875, 'mean_abs': 0.06342580169439316, 'exact': False, 'allclose': False, 'finite': True}
+qil_sdpa hf_sdpa head {'max_abs': 3.703125, 'mean_abs': 0.047397516667842865, 'exact': False, 'allclose': False, 'finite': True}
+qil_math hf_math head {'max_abs': 3.109375, 'mean_abs': 0.04307429865002632, 'exact': False, 'allclose': False, 'finite': True}
+hf_sdpa hf_eager head {'max_abs': 3.328125, 'mean_abs': 0.06138044595718384, 'exact': False, 'allclose': False, 'finite': True}
+hf_math hf_eager head {'max_abs': 3.453125, 'mean_abs': 0.061936620622873306, 'exact': False, 'allclose': False, 'finite': True}
+COMPLETE isolated nonexact ['0.rq', '0.rk', '1.rq', '1.rk', '2.rq', '2.rk', '3.rq', '3.rk', '4.rq', '4.rk', '5.rq', '5.rk', '6.rq', '6.rk', '7.rq', '7.rk', '8.rq', '8.rk', '9.rq', '9.rk', '10.rq', '10.rk', '11.rq', '11.rk', '12.rq', '12.rk', '13.rq', '13.rk', '14.rq', '14.rk', '15.rq', '15.rk', '16.rq', '16.rk', '17.rq', '17.rk', '18.rq', '18.rk', '19.rq', '19.rk', '20.rq', '20.rk', '21.rq', '21.rk', '22.rq', '22.rk', '23.rq', '23.rk', '24.rq', '24.rk', '25.rq', '25.rk', '26.rq', '26.rk', '27.rq', '27.rk']

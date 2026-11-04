@@ -1,0 +1,77 @@
+[
+  {
+    "dtype": "float32",
+    "quality": [
+      {
+        "name": "kv_cache",
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      },
+      {
+        "name": "arithmetic",
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      },
+      {
+        "name": "retrieval",
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      },
+      {
+        "name": "python",
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      }
+    ],
+    "performance": [
+      {
+        "name": "input128_batch1",
+        "batch": 1,
+        "prompt_tokens": 128,
+        "sequential_tokens_per_s": 25.905936532152666,
+        "batched_tokens_per_s": 26.496442002760386,
+        "vllm_tokens_per_s": 43.15570986303853,
+        "speedup": 1.022794214363755,
+        "vllm_percentage": 61.39730313057307,
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      },
+      {
+        "name": "input128_batch4",
+        "batch": 4,
+        "prompt_tokens": 128,
+        "sequential_tokens_per_s": 25.559773668340483,
+        "batched_tokens_per_s": 118.57694226916993,
+        "vllm_tokens_per_s": 151.46905590143848,
+        "speedup": 4.639201575405373,
+        "vllm_percentage": 78.28459850329325,
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      },
+      {
+        "name": "input512_batch1",
+        "batch": 1,
+        "prompt_tokens": 512,
+        "sequential_tokens_per_s": 20.68474676677518,
+        "batched_tokens_per_s": 24.119371401210234,
+        "vllm_tokens_per_s": 43.173218380187265,
+        "speedup": 1.1660462500779516,
+        "vllm_percentage": 55.866512403158985,
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      },
+      {
+        "name": "input512_batch4",
+        "batch": 4,
+        "prompt_tokens": 512,
+        "sequential_tokens_per_s": 23.65950170775081,
+        "batched_tokens_per_s": 83.93386482382584,
+        "vllm_tokens_per_s": 113.70663965608192,
+        "speedup": 3.547575340368612,
+        "vllm_percentage": 73.81615099847549,
+        "sequential_equals_batched": true,
+        "batched_equals_vllm": true
+      }
+    ]
+  }
+]

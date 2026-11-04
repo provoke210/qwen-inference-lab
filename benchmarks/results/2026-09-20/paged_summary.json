@@ -1,0 +1,22 @@
+{
+  "runtime_scope": "Independent direct-page decode attention; FP32 validated on recorded workloads, BF16 experimental",
+  "cpu_passed": 112,
+  "cpu_skipped": 19,
+  "gpu_specialized_passed": 24,
+  "final_source_sha256": "491a228bf4db6f4e855366d79973fd72bccf4e6c7e9703978abd28df7e51f244",
+  "post_measurement_generation_gate": {
+    "float32": {
+      "exit_status": 0,
+      "generation_parity_passed": true
+    },
+    "bfloat16": {
+      "exit_status": 1,
+      "generation_parity_passed": false
+    }
+  },
+  "known_failures": [
+    "BF16 Efficient: 1/32 long logit vectors fail",
+    "BF16 MATH: mixed 32/128/512/2048 request 0 output index 7 diverges due to a rounded tie"
+  ],
+  "default_decode_attention": "dense"
+}

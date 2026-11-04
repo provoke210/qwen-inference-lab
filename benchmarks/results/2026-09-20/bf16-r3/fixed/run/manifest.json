@@ -1,0 +1,15 @@
+{
+  "qil/__init__.py": "15053195e4cc5ccdfd2c2787a40e8907ebcc32d372c2533047d94eea4d9d525a",
+  "qil/__main__.py": "44db38aff1a9ce013d70a38b3fa8d9bd64b73d7268f5fef4d5ababd9f6467cf5",
+  "qil/cache.py": "b1ec901c9e73dedaaffbd1fbb2457b20242aa8795ce669444ed95fbde51c9c7d",
+  "qil/config.py": "6d67eb60edbf26f0c593daea0c7ca111c03b8643ce8d2fce7e62ccc12ed9b018",
+  "qil/engine.py": "5a92aeaef55552410e082bf45729c0226721ff29820ff408b1f6ac0a7a356d40",
+  "qil/model.py": "2e982358c1e1be7957f3c63a3cb2e0884c11b389564eb5890a80c6710241784f",
+  "qil/scheduler.py": "4b7cc79360b3c5bc8adbdd55f7ec907b59e6e8ee3dc26d6ee23f20a0a6365642",
+  "benchmarks/diagnose_bf16.py": "4b130865a59a6588c739d4fdfa3f320ff1266b2e52cc210ea0d71cc9007c2769",
+  "benchmarks/validate_batched.py": "43358f423b15ffa1edc24d7f16451cc7cf9f663f2bfcad0439240297bddf1a8b",
+  "benchmarks/compare_independent.py": "72e80eb9f6d02020ae8f9e7a36e932c5a12837e29f4f6d4b185f73e0b80465e9",
+  "tests/qil/test_bf16.py": "fa595fc742028573433c584ab859fded433cce54f3dfde6a9a340f996c1a1344",
+  "run_diagnostics.py": "040eb5594d334f3685f3d14d6396ddb69ed47436cbbb0a2e1ed90eb7da470370",
+  "workload.json": "5ec0a3dd891c04366e7156d61d47366a77bb3c7867e4dbf801fc36b1908e8f70"
+}

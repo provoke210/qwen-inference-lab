@@ -1,0 +1,34 @@
+{
+  "state": "completed",
+  "steps": [
+    {
+      "name": "kernel-tests",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-paged-short",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-paged-long",
+      "returncode": 1
+    },
+    {
+      "name": "float32-paged-short",
+      "returncode": 0
+    },
+    {
+      "name": "float32-paged-long",
+      "returncode": 0
+    },
+    {
+      "name": "float32-profile",
+      "returncode": 0
+    }
+  ],
+  "current": "float32-profile",
+  "accepted": {
+    "bfloat16": false,
+    "float32": true
+  }
+}

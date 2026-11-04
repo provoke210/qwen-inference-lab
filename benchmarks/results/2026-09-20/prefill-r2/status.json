@@ -1,0 +1,29 @@
+{
+  "state": "completed",
+  "started_at": "2026-09-20 16:20:37 +0800",
+  "steps": [
+    {
+      "name": "environment",
+      "returncode": 0
+    },
+    {
+      "name": "correctness",
+      "returncode": 0
+    },
+    {
+      "name": "paired",
+      "returncode": 0
+    },
+    {
+      "name": "qil",
+      "returncode": 0
+    },
+    {
+      "name": "vllm",
+      "returncode": 0
+    }
+  ],
+  "current_step": "vllm",
+  "qil_vllm_tokens_exact": true,
+  "finished_at": "2026-09-20 16:27:46 +0800"
+}

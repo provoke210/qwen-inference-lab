@@ -1,0 +1,11 @@
+START hf_eager
+START hf_sdpa
+START hf_math
+START qil_sdpa
+START qil_math
+qil_sdpa hf_eager head {'max_abs': 1.0, 'mean_abs': 0.058657851070165634, 'exact': False, 'allclose': False, 'finite': True}
+qil_sdpa hf_sdpa head {'max_abs': 1.0859375, 'mean_abs': 0.04621073231101036, 'exact': False, 'allclose': False, 'finite': True}
+qil_math hf_math head {'max_abs': 0.0, 'mean_abs': 0.0, 'exact': True, 'allclose': True, 'finite': True}
+hf_sdpa hf_eager head {'max_abs': 1.65625, 'mean_abs': 0.058634430170059204, 'exact': False, 'allclose': False, 'finite': True}
+hf_math hf_eager head {'max_abs': 1.765625, 'mean_abs': 0.06197965145111084, 'exact': False, 'allclose': False, 'finite': True}
+COMPLETE isolated nonexact []

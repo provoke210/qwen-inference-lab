@@ -1,0 +1,42 @@
+{
+  "state": "diagnostics_completed",
+  "steps": [
+    {
+      "name": "backend-probe",
+      "returncode": 0
+    },
+    {
+      "name": "cached-math-batched-short",
+      "returncode": 0
+    },
+    {
+      "name": "cached-math-batched-long",
+      "returncode": 0
+    },
+    {
+      "name": "cached-math-serial-short",
+      "returncode": 0
+    },
+    {
+      "name": "cached-math-serial-long",
+      "returncode": 0
+    },
+    {
+      "name": "cached-efficient-batched-short",
+      "returncode": 0
+    },
+    {
+      "name": "cached-efficient-batched-long",
+      "returncode": 0
+    },
+    {
+      "name": "cached-auto-batched-short",
+      "returncode": 1
+    },
+    {
+      "name": "cached-auto-batched-long",
+      "returncode": 1
+    }
+  ],
+  "current": "cached-auto-batched-long"
+}

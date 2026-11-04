@@ -1,0 +1,4 @@
+{"device": "cpu", "formula": "negative", "freq_exact": false, "freq_error": 5.960464477539063e-08, "cos_mismatches": 17, "sin_mismatches": 14}
+{"device": "cpu", "formula": "reciprocal", "freq_exact": true, "freq_error": 0.0, "cos_mismatches": 0, "sin_mismatches": 0}
+{"device": "cuda", "formula": "negative", "freq_exact": false, "freq_error": 5.960464477539063e-08, "cos_mismatches": 11, "sin_mismatches": 10}
+{"device": "cuda", "formula": "reciprocal", "freq_exact": false, "freq_error": 1.862645149230957e-09, "cos_mismatches": 0, "sin_mismatches": 1}

@@ -1,0 +1,50 @@
+{
+  "state": "diagnostics_completed",
+  "steps": [
+    {
+      "name": "layers128",
+      "returncode": 0
+    },
+    {
+      "name": "layers512",
+      "returncode": 0
+    },
+    {
+      "name": "eager-auto-short",
+      "returncode": 1
+    },
+    {
+      "name": "eager-auto-long",
+      "returncode": 1
+    },
+    {
+      "name": "sdpa-auto-short",
+      "returncode": 1
+    },
+    {
+      "name": "sdpa-auto-long",
+      "returncode": 1
+    },
+    {
+      "name": "sdpa-math-short",
+      "returncode": 1
+    },
+    {
+      "name": "sdpa-math-long",
+      "returncode": 1
+    },
+    {
+      "name": "sdpa-efficient-short",
+      "returncode": 1
+    },
+    {
+      "name": "sdpa-efficient-long",
+      "returncode": 1
+    },
+    {
+      "name": "fp32-regression",
+      "returncode": 0
+    }
+  ],
+  "current": "fp32-regression"
+}

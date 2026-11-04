@@ -1,0 +1,23 @@
+{
+  "state": "completed",
+  "steps": [
+    {
+      "name": "same-input-probe",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-paged-math-short",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-paged-math-long",
+      "returncode": 0
+    },
+    {
+      "name": "bfloat16-math-profile",
+      "returncode": 0
+    }
+  ],
+  "current": "bfloat16-math-profile",
+  "accepted": true
+}
