@@ -102,3 +102,38 @@ def test_transformers5_scaled_rope_is_rejected(pair, tmp_path, rope):
     _write_config(pair[1], tmp_path, rope_parameters=rope)
     with pytest.raises(ValueError, match='RoPE'):
         ModelConfig.read(tmp_path)
+
+
+@pytest.mark.parametrize('dtype', [torch.float32, torch.bfloat16])
+def test_rotation_is_bit_identical_to_split_halves(dtype):
+    from qil.model import DecoderBlock
+    torch.manual_seed(5)
+    x = torch.randn(6, 3, 16, dtype=dtype)
+    angles = torch.randn(6, 8) * 40
+    cosine, sine = angles.cos().to(dtype)[:, None], angles.sin().to(dtype)[:, None]
+    left, right = x.chunk(2, dim=-1)
+    expected = torch.cat((left * cosine - right * sine, left * sine + right * cosine), dim=-1)
+    assert torch.equal(DecoderBlock.rotate(x, angles), expected)
+
+
+def test_joint_query_key_rotation_matches_separate(pair):
+    native, _ = pair
+    block = native.blocks[0]
+    torch.manual_seed(6)
+    q, k = torch.randn(5, block.heads, 8), torch.randn(5, block.kv_heads, 8)
+    rotation = block.rotation_terms(torch.randn(5, 4), torch.float32)
+    joint_q, joint_k = block.rotate_query_key(q, k, rotation)
+    assert torch.equal(joint_q, block.apply_rotation(q, rotation))
+    assert torch.equal(joint_k, block.apply_rotation(k, rotation))
+
+
+@pytest.mark.parametrize('dtype', [torch.float32, torch.bfloat16])
+def test_scale_norm_matches_explicit_formula(dtype):
+    from qil.model import ScaleNorm
+    torch.manual_seed(7)
+    norm = ScaleNorm(64, 1e-6).to(dtype)
+    with torch.no_grad():
+        norm.scale.normal_()
+    x = torch.randn(4, 3, 64, dtype=dtype) * 5
+    explicit = (x.float() * (x.float().square().mean(dim=-1, keepdim=True) + 1e-6).rsqrt()).to(dtype) * norm.scale
+    torch.testing.assert_close(norm(x), explicit, rtol=0, atol=0)

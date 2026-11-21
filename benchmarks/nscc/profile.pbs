@@ -1,0 +1,36 @@
+#!/bin/bash -l
+#PBS -N qil-profile
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=00:45:00
+#PBS -j oe
+# Decode-step profile (benchmarks/profile_decode.py) on one GPU.
+# Submit with: qsub -P <project> -v QIL_ROOT=<work dir>[,QIL_TREE=<code dir>,QIL_OUT=<results dir>] <this file>
+# QIL_TREE and QIL_OUT are relative to QIL_ROOT (defaults: new, results-profile).
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+TREE=$R/${QIL_TREE:-new}
+OUT=$R/${QIL_OUT:-results-profile}
+module load miniforge3/25.3.1
+export LD_PRELOAD=/app/apps/miniforge3/25.3.1/lib/libstdc++.so.6
+source $R/venv-vllm/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+export TRITON_CACHE_DIR=$R/triton/vllm-env
+rm -rf $OUT; mkdir -p $OUT
+STATUS=$OUT/status.tsv
+printf 'step\texit\tseconds\n' > $STATUS
+nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv > $OUT/environment.txt
+lscpu | grep -E 'Model name|^CPU\(s\)' >> $OUT/environment.txt
+run() {
+  local step=$1; shift
+  echo "RUNNING $step" > $OUT/current.txt
+  local t0=$SECONDS
+  ( cd $TREE && PYTHONPATH=$TREE "$@" ) > $OUT/$step.log 2>&1
+  printf '%s\t%s\t%s\n' $step $? $((SECONDS-t0)) >> $STATUS
+}
+run Qwen3-0.6B-fp32 python -m benchmarks.profile_decode --model $R/models/Qwen3-0.6B --dtype float32 \
+  --prompt-len 128 512 --output $OUT/Qwen3-0.6B-fp32.json --trace $OUT/trace-Qwen3-0.6B-fp32-dense-b1.json.gz
+run Qwen3-4B-fp32 python -m benchmarks.profile_decode --model $R/models/Qwen3-4B --dtype float32 \
+  --prompt-len 128 512 --output $OUT/Qwen3-4B-fp32.json
+run Qwen3-0.6B-bf16 python -m benchmarks.profile_decode --model $R/models/Qwen3-0.6B --dtype bfloat16 \
+  --prompt-len 128 --decode-attention dense --output $OUT/Qwen3-0.6B-bf16.json
+echo "DONE" > $OUT/current.txt

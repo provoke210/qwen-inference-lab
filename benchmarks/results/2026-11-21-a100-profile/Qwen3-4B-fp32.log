@@ -1,0 +1,40 @@
+USDT:2026-11-21 15:50:05 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:50:05 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:50:10 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:50:11 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+dense batch=1 prompt=128: step 30.52 ms, profiled 49.54/69.53 ms (phases/full), GPU busy 21.37 ms, 2227 kernels/step
+USDT:2026-11-21 15:50:18 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:50:19 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:50:24 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:50:24 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+dense batch=4 prompt=128: step 34.77 ms, profiled 50.32/64.83 ms (phases/full), GPU busy 32.23 ms, 2515 kernels/step
+USDT:2026-11-21 15:50:32 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:50:32 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:50:38 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:50:49 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+dense batch=1 prompt=512: step 34.01 ms, profiled 48.64/63.49 ms (phases/full), GPU busy 24.02 ms, 2227 kernels/step
+USDT:2026-11-21 15:51:05 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:05 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:51:11 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:11 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+dense batch=4 prompt=512: step 38.77 ms, profiled 50.50/67.00 ms (phases/full), GPU busy 38.00 ms, 2515 kernels/step
+USDT:2026-11-21 15:51:20 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:20 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:51:24 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:24 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+paged batch=1 prompt=128: step 30.97 ms, profiled 43.03/57.49 ms (phases/full), GPU busy 18.23 ms, 1868 kernels/step
+USDT:2026-11-21 15:51:30 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:31 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:51:35 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:35 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+paged batch=4 prompt=128: step 32.72 ms, profiled 45.24/59.65 ms (phases/full), GPU busy 27.21 ms, 2155 kernels/step
+USDT:2026-11-21 15:51:44 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:44 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:51:48 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:50 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+paged batch=1 prompt=512: step 30.84 ms, profiled 42.86/57.38 ms (phases/full), GPU busy 18.24 ms, 1868 kernels/step
+USDT:2026-11-21 15:51:57 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:51:57 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-21 15:52:01 1548006:1548006 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-21 15:52:02 1548006:1548006 SyncActivityProfilerHandler.cpp:59] profiler_stop
+paged batch=4 prompt=512: step 32.82 ms, profiled 45.42/60.41 ms (phases/full), GPU busy 26.80 ms, 2155 kernels/step

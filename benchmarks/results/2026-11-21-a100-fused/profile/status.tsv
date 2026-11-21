@@ -1,0 +1,4 @@
+step	exit	seconds
+Qwen3-0.6B-fp32	0	213
+Qwen3-4B-fp32	0	186
+Qwen3-0.6B-bf16	0	28
