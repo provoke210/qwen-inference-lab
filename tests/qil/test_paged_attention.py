@@ -65,17 +65,20 @@ def test_grouped_engine_dynamic_lifecycle(pair):
     dense = Engine(model, token_budget=6, prefill_chunk=2, page_size=2, num_pages=32)
     grouped = Engine(model, token_budget=6, prefill_chunk=2, page_size=2, num_pages=32,
                      decode_attention='grouped')
+    outputs = []
     for engine in (dense, grouped):
         a = engine.submit([1],max_new_tokens=6,ignore_eos=True)
         b = engine.submit([3,4,5,6,7],max_new_tokens=6,ignore_eos=True)
         engine.step(); engine.step()
         assert engine.cancel(b)
-        engine.submit([19,20],max_new_tokens=4,ignore_eos=True)
+        c = engine.submit([19,20],max_new_tokens=4,ignore_eos=True)
         while not engine.idle: engine.step()
-        engine.generate([[9],[11,12]],max_new_tokens=3,ignore_eos=True)
+        rows = [engine.result(rid)['token_ids'] for rid in (a, b, c)]
+        # generate() returns its results and releases their records.
+        rows += [r['token_ids'] for r in engine.generate([[9],[11,12]],max_new_tokens=3,ignore_eos=True)]
+        outputs.append(rows)
         assert not engine.pool.tables and len(engine.pool.free)==32
-    for rid in range(5):
-        assert dense.result(rid)['token_ids']==grouped.result(rid)['token_ids']
+    assert outputs[0] == outputs[1] and len(outputs[0]) == 5
 
 
 def test_paged_rejects_cpu_without_importing_triton(pair):

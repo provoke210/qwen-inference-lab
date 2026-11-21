@@ -132,6 +132,16 @@ class Engine:
             tpot_s=sum(gaps)/len(gaps) if gaps else None,
         )
 
+    def pop_result(self, request_id):
+        """Return a finished request's result and release its record.
+
+        result() keeps records readable indefinitely; a long-running caller
+        should take each finished request with this instead.
+        """
+        result = self.result(request_id)
+        self.scheduler.forget(request_id)
+        return result
+
     @property
     def idle(self):
         return self.scheduler.idle
@@ -146,10 +156,12 @@ class Engine:
             while not self.idle:
                 self.step()
         except Exception:
+            # Keep the records so the caller can inspect which request failed
+            # and why; release them with pop_result() afterwards.
             for request_id in request_ids:
                 self.cancel(request_id)
             raise
-        return [self.result(request_id) for request_id in request_ids]
+        return [self.pop_result(request_id) for request_id in request_ids]
 
     def close(self):
         for request_id in list(self.scheduler.active) + list(self.scheduler.waiting):
