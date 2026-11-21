@@ -27,7 +27,7 @@ class Engine:
         cfg = model.config
         weight = next(model.parameters())
         self.pool = PagePool(layers=cfg.num_hidden_layers, pages=num_pages, page_size=page_size,
-                             kv_heads=cfg.num_key_value_heads, head_dim=cfg.head_dim,
+                             kv_heads=getattr(model, 'kv_heads', cfg.num_key_value_heads), head_dim=cfg.head_dim,
                              dtype=weight.dtype, device=weight.device, decode_attention=decode_attention)
         self.scheduler = Scheduler(self.pool, token_budget=token_budget,
                                    prefill_chunk=prefill_chunk, max_active=max_active)
@@ -95,11 +95,13 @@ class Engine:
                 raise
         return events
 
-    @staticmethod
-    def _sample(logits):
+    def _sample(self, logits):
         if not torch.isfinite(logits).all().item():
             raise RuntimeError('model returned non-finite logits')
-        return logits.argmax(dim=-1).tolist()
+        tokens = logits.argmax(dim=-1).tolist()
+        # Under tensor parallelism every rank must continue from the same tokens.
+        agree = getattr(self.model, 'agree', None)
+        return agree(tokens) if agree else tokens
 
     def _complete_work(self, work, token):
         request = self.scheduler.requests[work.request_id]
