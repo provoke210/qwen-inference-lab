@@ -6,6 +6,14 @@ from qil.config import ModelConfig
 from qil.model import Qwen3
 
 
+def rope_theta(cfg):
+    """Transformers 4 keeps rope_theta on the config; 5 moves it into rope_parameters."""
+    try:
+        return cfg.rope_theta
+    except AttributeError:
+        return cfg.rope_parameters['rope_theta']
+
+
 @pytest.fixture
 def pair():
     torch.manual_seed(20260909)
@@ -17,7 +25,8 @@ def pair():
                       attention_dropout=0., attention_bias=False)
     cfg._attn_implementation = 'eager'
     reference = Qwen3ForCausalLM(cfg).eval()
-    native_cfg = ModelConfig(**{name: getattr(cfg, name) for name in ModelConfig.__dataclass_fields__})
+    native_cfg = ModelConfig(**{name: rope_theta(cfg) if name == 'rope_theta' else getattr(cfg, name)
+                                for name in ModelConfig.__dataclass_fields__})
     native = Qwen3(native_cfg).eval()
     with torch.no_grad():
         weights = reference.state_dict()
