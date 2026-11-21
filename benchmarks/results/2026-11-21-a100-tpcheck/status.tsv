@@ -1,0 +1,4 @@
+step	exit	seconds
+pytest	0	208
+tp-Qwen3-0.6B	0	90
+tp-Qwen3-4B	0	258

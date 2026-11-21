@@ -1,0 +1,33 @@
+#!/bin/bash -l
+#PBS -N qil-tpcheck
+#PBS -q normal
+#PBS -l select=1:ncpus=32:ngpus=2:mem=220gb
+#PBS -l walltime=00:30:00
+#PBS -j oe
+# Short NCCL check of the tensor-parallel start-up (qil/parallel.py) on 2 GPUs.
+# Submit with: qsub -P <project> -v QIL_ROOT=<work dir> <this file>
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+OUT=$R/results-tpcheck; WL=$R/workload.json
+module load miniforge3/25.3.1
+export LD_PRELOAD=/app/apps/miniforge3/25.3.1/lib/libstdc++.so.6
+source $R/venv-vllm/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+export TRITON_CACHE_DIR=$R/triton/vllm-env
+rm -rf $OUT; mkdir -p $OUT
+STATUS=$OUT/status.tsv
+printf 'step\texit\tseconds\n' > $STATUS
+nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv > $OUT/environment.txt
+run() {
+  local step=$1; shift
+  echo "RUNNING $step" > $OUT/current.txt
+  local t0=$SECONDS
+  ( cd $R/new && PYTHONPATH=$R/new "$@" ) > $OUT/$step.log 2>&1
+  printf '%s\t%s\t%s\n' $step $? $((SECONDS-t0)) >> $STATUS
+}
+run pytest python -m pytest -q --disable-warnings --junitxml=$OUT/pytest.xml
+# Two groups back to back in one process: each must get its own store port.
+run tp-Qwen3-0.6B python -m benchmarks.compare_tp --model $R/models/Qwen3-0.6B --workload $WL \
+  --sizes 1 2 --dtype float32 --decode-attention paged --runs 2 --output $OUT/tp-Qwen3-0.6B.json
+run tp-Qwen3-4B python -m benchmarks.compare_tp --model $R/models/Qwen3-4B --workload $WL \
+  --sizes 1 2 --dtype float32 --decode-attention dense --runs 2 --output $OUT/tp-Qwen3-4B.json
+echo "DONE" > $OUT/current.txt
