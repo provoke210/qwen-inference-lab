@@ -1,0 +1,3 @@
+Qwen3-0.6B-bfloat16	10/10	[]	input128_batch1:2.52->0.56s input128_batch4:2.46->0.84s input512_batch1:2.31->0.61s input512_batch4:2.67->1.06s
+Qwen3-0.6B-float32	10/10	[]	input128_batch1:2.32->0.56s input128_batch4:2.40->0.96s input512_batch1:2.16->0.61s input512_batch4:2.51->1.22s
+Qwen3-4B-float32	10/10	[]	input128_batch1:3.00->2.00s input128_batch4:3.50->3.63s input512_batch1:2.91->2.21s input512_batch4:4.36->4.45s

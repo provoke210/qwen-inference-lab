@@ -25,6 +25,12 @@ class DecodeBatch:
     page_table: torch.Tensor
     lengths: torch.Tensor
     groups: tuple = ()
+    # CUDA Graph batches (qil.graphs): fixed shapes over static buffers. The
+    # graph runner validates and records KV progress once per step, so the
+    # per-layer host checks below are skipped; max_length fixes the paged
+    # kernel's partition count instead of following the longest request.
+    max_length: int | None = None
+    static: bool = False
 
 
 class PagePool:
@@ -48,6 +54,9 @@ class PagePool:
         self.keys = torch.empty(shape, dtype=dtype, device=device)
         self.values = torch.empty_like(self.keys)
         self.paged_workspace = {}
+        # Separate from paged_workspace: a captured graph keeps the addresses of
+        # its scratch buffers, so eager decode must never regrow those.
+        self.graph_workspace = {}
 
     def pages_for(self, tokens):
         return (tokens + self.page_size - 1) // self.page_size
@@ -113,9 +122,15 @@ class PagePool:
             raise ValueError('prefill slots do not match the KV read')
         return self.keys[layer].index_select(0, slots), self.values[layer].index_select(0, slots)
 
-    def prepare_decode(self, request_ids, starts, *, layout=None):
-        """Build one shared index layout for all layers, with one token per row."""
-        request_ids, starts = tuple(request_ids), tuple(starts)
+    def reserve_page(self):
+        """Withdraw one free page from allocation for good (e.g. the CUDA Graph padding sink)."""
+        if self.unreserved < 1 or not self.free:
+            raise ValueError('no unreserved page left to withdraw')
+        self.capacity -= 1
+        return self.free.pop()
+
+    def check_decode(self, request_ids, starts):
+        """Validate that every request decodes its next position into allocated pages."""
         if not request_ids or len(request_ids) != len(starts) or len(set(request_ids)) != len(request_ids):
             raise ValueError('decode needs equally sized, nonempty, unique request IDs and positions')
         if any(type(start) is not int or start < 0 for start in starts):
@@ -128,6 +143,16 @@ class PagePool:
             if any(written != start for written in self.written[request_id]):
                 raise ValueError('decode must extend the cached prefix in every layer')
 
+    def commit_decode(self, request_ids, starts):
+        """Record one decoded position in every layer (static batches skip per-layer bookkeeping)."""
+        layers = self.keys.shape[0]
+        for request_id, start in zip(request_ids, starts):
+            self.written[request_id] = [start + 1] * layers
+
+    def prepare_decode(self, request_ids, starts, *, layout=None):
+        """Build one shared index layout for all layers, with one token per row."""
+        request_ids, starts = tuple(request_ids), tuple(starts)
+        self.check_decode(request_ids, starts)
         device = self.keys.device
         positions = torch.tensor(starts, device=device, dtype=torch.long)
         layout = self.decode_attention if layout is None else layout
@@ -165,16 +190,18 @@ class PagePool:
 
     def write_decode(self, batch, layer, keys, values):
         """Scatter every request's new KV with one index_copy_ per tensor."""
-        expected = (len(batch.request_ids), *self.keys.shape[2:])
-        if tuple(keys.shape) != expected or tuple(values.shape) != expected:
-            raise ValueError('invalid batched decode KV shape')
-        for request_id, start in zip(batch.request_ids, batch.starts):
-            if request_id not in self.written or self.written[request_id][layer] != start:
-                raise ValueError('stale decode batch or noncontiguous KV write')
+        if not batch.static:
+            expected = (len(batch.request_ids), *self.keys.shape[2:])
+            if tuple(keys.shape) != expected or tuple(values.shape) != expected:
+                raise ValueError('invalid batched decode KV shape')
+            for request_id, start in zip(batch.request_ids, batch.starts):
+                if request_id not in self.written or self.written[request_id][layer] != start:
+                    raise ValueError('stale decode batch or noncontiguous KV write')
         self.keys[layer].index_copy_(0, batch.write_slots, keys)
         self.values[layer].index_copy_(0, batch.write_slots, values)
-        for request_id, start in zip(batch.request_ids, batch.starts):
-            self.written[request_id][layer] = start + 1
+        if not batch.static:
+            for request_id, start in zip(batch.request_ids, batch.starts):
+                self.written[request_id][layer] = start + 1
 
     def read_decode(self, batch, layer):
         """Gather [batch, padded_context, kv_heads, head_dim] for SDPA."""
@@ -187,6 +214,8 @@ class PagePool:
                 self.values[layer].index_select(0, slots).reshape(shape))
 
     def validate_decode_read(self, batch, layer):
+        if batch.static:
+            return
         for request_id, start in zip(batch.request_ids, batch.starts):
             if request_id not in self.written or self.written[request_id][layer] != start + 1:
                 raise ValueError('cannot read unwritten decode KV')

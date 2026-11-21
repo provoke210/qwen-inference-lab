@@ -67,6 +67,8 @@ def annotate(engine, level='full'):
     patch(engine, '_complete_work', 'complete')
     patch(pool, 'prepare_decode', 'prepare')
     patch(model, 'forward_decode', 'forward')
+    if engine.graphs is not None:  # graph replay: the layers below run inside the graph, unannotated
+        patch(engine.graphs, 'decode', 'forward')
     patch(model.embedding, 'forward', 'embed')
     patch(model.final_norm, 'forward', 'final_norm')
     patch(model.head, 'forward', 'lm_head')
@@ -185,7 +187,8 @@ def tiny_model():
     return model
 
 
-def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, device, trace=None):
+def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, device, trace=None,
+             cuda_graph=False):
     if annotated(model):
         raise RuntimeError(f'profiler wrappers left on the model: {annotated(model)[:3]}')
     sync = torch.cuda.synchronize if device == 'cuda' else (lambda: None)
@@ -195,7 +198,7 @@ def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, de
     total = warmup + timed + 2 * (profiled + 1) + 2  # two profiles, each after one warm step
     engine = Engine(model, num_pages=max(256, batch * ((prompt_len + total) // 16 + 2)), page_size=16,
                     token_budget=max(512, batch * prompt_len), prefill_chunk=max(128, prompt_len),
-                    max_active=batch, decode_attention=attention)
+                    max_active=batch, decode_attention=attention, cuda_graph=cuda_graph)
     ids = [engine.submit(p, max_new_tokens=total, ignore_eos=True) for p in prompts]
     requests = engine.scheduler.requests
 
@@ -246,7 +249,8 @@ def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, de
         context = len(requests[ids[0]].prompt) + len(requests[ids[0]].output)
     finally:
         engine.close()
-    return dict(batch=batch, prompt_len=prompt_len, attention=attention, context_at_end=context,
+    return dict(batch=batch, prompt_len=prompt_len, attention=attention, cuda_graph=cuda_graph,
+                context_at_end=context,
                 step_ms_median=statistics.median(samples), step_samples_ms=samples,
                 profile_phases=profiles['phases'], profile_full=profiles['full'])
 
@@ -266,6 +270,7 @@ def main():
     parser.add_argument('--warmup', type=int, default=8)
     parser.add_argument('--timed', type=int, default=32)
     parser.add_argument('--profiled', type=int, default=8)
+    parser.add_argument('--cuda-graph', action='store_true', help='replay decode steps from CUDA Graphs (paged only)')
     parser.add_argument('--trace', type=Path, help='write a gzipped Chrome trace of the first case here')
     args = parser.parse_args()
     if args.tiny:
@@ -275,14 +280,15 @@ def main():
     report = dict(model=Path(args.model).name if args.model else 'tiny', dtype=args.dtype, device=args.device,
                   gpu=torch.cuda.get_device_name(0) if args.device == 'cuda' else None,
                   torch=torch.__version__, layers=model.config.num_hidden_layers,
-                  warmup=args.warmup, timed=args.timed, profiled=args.profiled, cases=[], complete=False)
+                  cuda_graph=args.cuda_graph, warmup=args.warmup, timed=args.timed, profiled=args.profiled,
+                  cases=[], complete=False)
     trace = args.trace
     for attention in args.decode_attention:
         for prompt_len in args.prompt_len:
             for batch in args.batch:
                 case = run_case(model, batch=batch, prompt_len=prompt_len, attention=attention,
                                 warmup=args.warmup, timed=args.timed, profiled=args.profiled,
-                                device=args.device, trace=trace)
+                                device=args.device, trace=trace, cuda_graph=args.cuda_graph)
                 trace = None
                 report['cases'].append(case)
                 light, full = case['profile_phases'], case['profile_full']

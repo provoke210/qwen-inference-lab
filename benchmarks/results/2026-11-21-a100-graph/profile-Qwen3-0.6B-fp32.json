@@ -1,0 +1,2007 @@
+{
+  "model": "Qwen3-0.6B",
+  "dtype": "float32",
+  "device": "cuda",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "torch": "2.13.0+cu129",
+  "layers": 28,
+  "cuda_graph": true,
+  "warmup": 8,
+  "timed": 32,
+  "profiled": 8,
+  "cases": [
+    {
+      "batch": 1,
+      "prompt_len": 128,
+      "attention": "paged",
+      "cuda_graph": true,
+      "context_at_end": 187,
+      "step_ms_median": 4.868694581091404,
+      "step_samples_ms": [
+        4.8704990185797215,
+        4.867943003773689,
+        4.8618619330227375,
+        4.855358973145485,
+        4.860780201852322,
+        4.86688083037734,
+        4.863716196268797,
+        4.867773037403822,
+        4.867462906986475,
+        4.860438872128725,
+        4.857903812080622,
+        4.857191815972328,
+        4.861862398684025,
+        4.858404863625765,
+        4.871340002864599,
+        4.8632449470460415,
+        4.861650988459587,
+        4.869446158409119,
+        4.864437039941549,
+        4.874226171523333,
+        4.887021146714687,
+        4.8895361833274364,
+        4.876499995589256,
+        4.873744677752256,
+        4.883174318820238,
+        4.876791033893824,
+        4.883524030447006,
+        4.89044701680541,
+        4.880887921899557,
+        4.8833731561899185,
+        4.880728200078011,
+        4.882262088358402
+      ],
+      "profile_phases": {
+        "steps": 8,
+        "wall_ms": 11.903977625000001,
+        "wall_samples_ms": [
+          53.445702000000004,
+          6.28559599999999,
+          5.925657999999996,
+          5.922111000000005,
+          5.916880999999994,
+          5.911681000000011,
+          5.887472999999998,
+          5.936719000000012
+        ],
+        "gpu_busy_ms": 0.04702762499999153,
+        "gpu_device_events_ms": 4.895417750000088,
+        "kernels_per_step": 11.5,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.1020565000000097,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.027300374999997074,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 3.0106266249999973,
+            "gpu_ms": 0.003907624999992549,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.5
+          },
+          "sample": {
+            "cpu_ms": 8.744989375000001,
+            "gpu_ms": 0.04311999999999898,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.01900474999999642,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.125,
+            "ms_per_step": 0.015064000000005762
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.010160124999994878
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0038838749999995344
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0033521249999976135
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0032081250000119328
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0030839999999952854
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.125,
+            "ms_per_step": 0.00286000000000422
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.001947874999994383
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0017758749999957216
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0016916249999922002
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 4.188371374999996
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 2.254504624999998
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 1.2354266249999963
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.9019587500000161
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.7751143750000065
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.12939624999999977
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.060685624999994615
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0600162500000024
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.04959512499999982
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.04162687499999447
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.021828750000015135
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01948637499999677
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.017948125000002618
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.017363624999983587
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.011244500000007974
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.008968750000005457
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.008127125000002707
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.007684875000009924
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.007410874999994121
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0066368749999855935
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.004175750000016706
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0031333749999976133
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0030111250000027213
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0019412500000107683
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0003931249999877764
+          }
+        ]
+      },
+      "profile_full": {
+        "steps": 8,
+        "wall_ms": 6.0886594999999994,
+        "wall_samples_ms": [
+          7.16246,
+          5.99867,
+          5.950314999999999,
+          5.943753000000001,
+          5.928312999999998,
+          5.911410000000004,
+          5.906470999999998,
+          5.907883999999998
+        ],
+        "gpu_busy_ms": 0.044922750000002905,
+        "gpu_device_events_ms": 4.900903875000012,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.061062999999997716,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.021729749999999968,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 0.9646405000000013,
+            "gpu_ms": 0.0016957500000004302,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 5.02562225,
+            "gpu_ms": 0.04322700000000248,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.015604000000001065,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.013388000000000375
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.010195875000000342
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.003851874999999495
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0032356249999996862
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.003080000000000837
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.00298424999999952
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.0026916250000008405
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.00199187500000005
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0018078750000013314
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0016957500000004302
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 4.78645275
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.7410602499999991
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.12275212499999999
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.04364574999999985
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.03545899999999915
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.017025749999997855
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.016407250000000758
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.015783374999999752
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.013804375000000278
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.012134249999999553
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.009648999999999148
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.007177000000000646
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.006784000000000106
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.006380000000001815
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005692500000001019
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005412000000000035
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005231374999999275
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0033177499999989665
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.003158374999998614
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002872875000000306
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002488624999999956
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0020776249999993864
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.001957500000001005
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0019273750000007794
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0003818750000000364
+          }
+        ]
+      }
+    },
+    {
+      "batch": 4,
+      "prompt_len": 128,
+      "attention": "paged",
+      "cuda_graph": true,
+      "context_at_end": 187,
+      "step_ms_median": 7.041830103844404,
+      "step_samples_ms": [
+        8.562868926674128,
+        8.562709204852581,
+        8.560483809560537,
+        8.565855212509632,
+        8.56246892362833,
+        8.564521558582783,
+        8.329726755619049,
+        7.053428329527378,
+        7.058857940137386,
+        7.014250848442316,
+        7.0215561427176,
+        7.01668718829751,
+        7.0290700532495975,
+        7.050572894513607,
+        7.009292021393776,
+        7.020663935691118,
+        7.018569856882095,
+        7.021525874733925,
+        7.016837131232023,
+        7.019271142780781,
+        7.013049907982349,
+        7.016295101493597,
+        7.019602227956057,
+        7.028810679912567,
+        7.037847302854061,
+        7.033769972622395,
+        7.05956993624568,
+        7.088627200573683,
+        7.045812904834747,
+        7.0771342143416405,
+        7.053527981042862,
+        7.088155020028353
+      ],
+      "profile_phases": {
+        "steps": 8,
+        "wall_ms": 8.154405875000002,
+        "wall_samples_ms": [
+          9.238171,
+          7.999585000000001,
+          7.964397000000001,
+          7.987973000000002,
+          8.004665000000001,
+          8.082586000000003,
+          7.961832000000002,
+          7.996038
+        ],
+        "gpu_busy_ms": 0.04015962500000643,
+        "gpu_device_events_ms": 6.922374750000025,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.05980450000000678,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.026713124999999616,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 1.0089494999999993,
+            "gpu_ms": 0.0016598750000003405,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 7.028492125,
+            "gpu_ms": 0.03849975000000609,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.030446624999996404,
+            "gpu_ms": 0.0,
+            "calls_per_step": 4.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.011439749999998867
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.008027750000001561
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.004891999999999371
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0032118750000006456
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.003016375000000835
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.002868000000001075
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.0021562500000025012
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0016598750000003405
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014640000000008513
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.001423750000000382
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 6.833929249999999
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.7874781250000001
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.126757375
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.03414525000000003
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.029296875000001592
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.014853249999996621
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.014420500000000856
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01252287500000142
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.011171624999998528
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.009582375000000639
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.008477749999999333
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005383125000000689
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0053819999999986405
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004983000000000743
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0046946250000019065
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004474875000000282
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004163124999999752
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0028003749999998035
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002441624999999931
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002254374999998788
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002005375000001095
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0018686250000016856
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0013981249999981175
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0012837500000000546
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0002702500000004875
+          }
+        ]
+      },
+      "profile_full": {
+        "steps": 8,
+        "wall_ms": 8.110477125,
+        "wall_samples_ms": [
+          8.852442000000002,
+          7.991069000000001,
+          8.023382000000002,
+          7.972753000000001,
+          8.002591999999996,
+          7.9624129999999935,
+          8.028040999999998,
+          8.051125
+        ],
+        "gpu_busy_ms": 0.04013962499999619,
+        "gpu_device_events_ms": 6.924907000000036,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.0595425000000007,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.02648874999999957,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 0.95890875,
+            "gpu_ms": 0.001667874999998304,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 7.033778624999999,
+            "gpu_ms": 0.03847174999999788,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.03175850000000037,
+            "gpu_ms": 0.0,
+            "calls_per_step": 4.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.011455999999999904
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.008012000000000854
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.004871874999999136
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0031879999999996473
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0030319999999974243
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.00285599999999954
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.0021440000000011424
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.001667874999998304
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014758750000007695
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.001435999999999467
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 6.83686025
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.8017470000000003
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0648773749999981
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.03441675000000149
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.027658750000000003
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.014908500000000458
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0141245000000022
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01247987499999627
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01114937500000093
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.009569750000000994
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.008540375000002114
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005600874999997444
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005454250000000769
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005112249999998056
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004827999999999292
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004447249999999798
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0042985000000007
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.002819250000001489
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0025163750000006075
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0022933749999999977
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0020338749999993977
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.00179349999999922
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.001544250000002421
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0013830000000011752
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00027812500000186445
+          }
+        ]
+      }
+    },
+    {
+      "batch": 1,
+      "prompt_len": 512,
+      "attention": "paged",
+      "cuda_graph": true,
+      "context_at_end": 571,
+      "step_ms_median": 4.335545003414154,
+      "step_samples_ms": [
+        5.015910603106022,
+        5.005099810659885,
+        5.0186458975076675,
+        5.006112158298492,
+        5.0060320645570755,
+        5.000610835850239,
+        5.004728678613901,
+        5.003507249057293,
+        5.010860972106457,
+        5.017905030399561,
+        4.3093375861644745,
+        4.317064303904772,
+        4.317544866353273,
+        4.335058853030205,
+        4.318345803767443,
+        4.319197963923216,
+        4.31987876072526,
+        4.307234659790993,
+        4.313496872782707,
+        4.3217032216489315,
+        4.317123908549547,
+        4.3205199763178825,
+        4.349616821855307,
+        4.336031153798103,
+        4.323195666074753,
+        4.340217914432287,
+        4.357541911303997,
+        4.3469322845339775,
+        4.326150752604008,
+        4.339186940342188,
+        4.308887757360935,
+        4.321913234889507
+      ],
+      "profile_phases": {
+        "steps": 8,
+        "wall_ms": 5.256743625,
+        "wall_samples_ms": [
+          5.806266000000001,
+          5.170611000000001,
+          5.181332,
+          5.286797000000001,
+          5.154539999999997,
+          5.146435000000001,
+          5.147717000000001,
+          5.160250999999996
+        ],
+        "gpu_busy_ms": 0.03531625000000335,
+        "gpu_device_events_ms": 4.221861625000006,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.0455697499999992,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.01727475000000053,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 0.8614942500000006,
+            "gpu_ms": 0.0013040000000002863,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 4.319786625,
+            "gpu_ms": 0.03401225000000306,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.012618249999999762,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0103040000000002
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.008000000000000455
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0032721250000012107
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0025360000000002854
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.002388124999999718
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0023279999999999746
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.0020760000000003627
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0016358750000003966
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014721250000004603
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0013040000000002863
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 4.124872
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.7077182499999999
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.06560000000000121
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.034674875
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.03426874999999882
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.014016999999999356
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.013913500000002273
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.012231125000001185
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.010871125000001541
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.009929000000000287
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.008514000000000408
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005887499999999875
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00530024999999938
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005017124999999993
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004795249999999101
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004407374999999774
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00430212499999945
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.002816499999997774
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002408625000000569
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0024007500000005847
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0020354999999990468
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.001722125000000098
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0014341250000003355
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0012708750000005012
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00026024999999981445
+          }
+        ]
+      },
+      "profile_full": {
+        "steps": 8,
+        "wall_ms": 5.255428624999999,
+        "wall_samples_ms": [
+          5.942781,
+          5.144672,
+          5.153617999999999,
+          5.133189000000001,
+          5.155551999999999,
+          5.237440999999999,
+          5.142816999999999,
+          5.133358999999997
+        ],
+        "gpu_busy_ms": 0.03534812500000302,
+        "gpu_device_events_ms": 4.224367750000024,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.04765612500000134,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.01811137500000007,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 0.849986999999999,
+            "gpu_ms": 0.0013121250000000088,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 4.3265773749999985,
+            "gpu_ms": 0.034036000000003015,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.013096749999999246,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.010327750000000833
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.007964125000000195
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0032962499999998726
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0025477499999997234
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.002392125000001329
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.002336125000000607
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.0020718750000003183
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0016359999999995124
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014640000000006239
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0013121250000000088
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 4.1282985
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.7024954999999995
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.06390162500000086
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.03475749999999877
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.02896375
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.014284000000000902
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.013777874999997948
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.012235000000000582
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01100274999999911
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.010688124999999275
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.008491374999999267
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005839624999997
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005412750000002574
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005216500000000337
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004676749999999856
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004440000000000254
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0043222500000007075
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0028268750000007403
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002637375000000702
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0023870000000000575
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0021228749999991125
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0017633750000012611
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0014606249999999364
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0014101249999997662
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00033587499999930515
+          }
+        ]
+      }
+    },
+    {
+      "batch": 4,
+      "prompt_len": 512,
+      "attention": "paged",
+      "cuda_graph": true,
+      "context_at_end": 571,
+      "step_ms_median": 7.2576249949634075,
+      "step_samples_ms": [
+        7.264527957886457,
+        7.256883196532726,
+        7.25869694724679,
+        7.254818920046091,
+        7.254417985677719,
+        7.246872875839472,
+        7.24059110507369,
+        7.2564720176160336,
+        7.260069716721773,
+        7.250701077282429,
+        7.257745135575533,
+        7.265570107847452,
+        7.2582559660077095,
+        7.255739998072386,
+        7.259679026901722,
+        7.278895936906338,
+        7.260018959641457,
+        7.257504854351282,
+        7.245530840009451,
+        7.227616384625435,
+        7.270399015396833,
+        7.268414832651615,
+        7.254930213093758,
+        7.236582692712545,
+        7.254328113049269,
+        7.259969133883715,
+        7.223679218441248,
+        7.266462314873934,
+        7.257383782416582,
+        7.263805717229843,
+        7.265831343829632,
+        7.2671533562242985
+      ],
+      "profile_phases": {
+        "steps": 8,
+        "wall_ms": 8.3532095,
+        "wall_samples_ms": [
+          9.119039,
+          8.388931000000001,
+          8.330498,
+          8.192199,
+          8.222478000000002,
+          8.179926000000007,
+          8.215253999999993,
+          8.177350999999994
+        ],
+        "gpu_busy_ms": 0.04007987500000064,
+        "gpu_device_events_ms": 7.099501875000007,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.06232237500000383,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.0313018749999999,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 1.0223002500000007,
+            "gpu_ms": 0.0016560000000011429,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 7.205310374999998,
+            "gpu_ms": 0.0384238749999995,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.03197462499999733,
+            "gpu_ms": 0.0,
+            "calls_per_step": 4.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.011459874999999328
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.008015624999999773
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.004880124999997861
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0031842500000013843
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.002987874999997757
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0028757499999994707
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.002140250000001515
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0016560000000011429
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.001440125000001217
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014400000000011914
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 7.003844249999999
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.849382124999999
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0665913749999978
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.03556712500000137
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.03485525
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.014932750000001533
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.014389500000002001
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.012570749999999862
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.011375999999998668
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.010178500000000213
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.00896624999999932
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0056612500000015305
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0053831249999987
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005112499999999585
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004934499999998252
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004628874999999681
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004393499999999449
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0029586249999984772
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0025475000000002696
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002489874999999529
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002074000000001206
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0019035000000002498
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0014442500000000108
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0013227500000014061
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00028300000000035653
+          }
+        ]
+      },
+      "profile_full": {
+        "steps": 8,
+        "wall_ms": 8.427623125000002,
+        "wall_samples_ms": [
+          9.259632000000002,
+          8.289058,
+          8.374995000000002,
+          8.395974999999998,
+          8.205084999999999,
+          8.244872000000003,
+          8.221336000000003,
+          8.430031999999999
+        ],
+        "gpu_busy_ms": 0.04014337499999954,
+        "gpu_device_events_ms": 7.099162749999979,
+        "kernels_per_step": 11.125,
+        "phases": {
+          "step": {
+            "cpu_ms": 0.06149862500000222,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "schedule": {
+            "cpu_ms": 0.031425000000000126,
+            "gpu_ms": 0.0,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 0.0
+          },
+          "forward": {
+            "cpu_ms": 1.100423,
+            "gpu_ms": 0.0016596249999996644,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 1.125
+          },
+          "sample": {
+            "cpu_ms": 7.202936999999999,
+            "gpu_ms": 0.03848374999999987,
+            "calls_per_step": 1.0,
+            "kernels_per_step": 10.0
+          },
+          "complete": {
+            "cpu_ms": 0.03133949999999891,
+            "gpu_ms": 0.0,
+            "calls_per_step": 4.0,
+            "kernels_per_step": 0.0
+          }
+        },
+        "top_kernels": [
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4> >(at::native::ReduceOp<float, at::native::ArgMaxOps<float>, unsigned int, long, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.01144399999999996
+          },
+          {
+            "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4> >(at::native::ReduceOp<bool, at::native::func_wrapper_t<bool, at::native::and_kernel_cuda(at::TensorIterator&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(bool, bool)#1}>, unsigned int, bool, 4, 4>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.00802387499999918
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AbsFunctor<float>, std::array<char*, 2ul> >(int, at::native::AbsFunctor<float>, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.004883875000001126
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul> >(int, at::native::AUnaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 2ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0032002499999978225
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<float, float, bool, at::native::(anonymous namespace)::CompareEqFunctor<float> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.003004249999997455
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<bool, bool, bool, at::native::binary_internal::MulFunctor<bool> >, std::array<char*, 3ul>)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0028637500000020283
+          },
+          {
+            "name": "Memset (Device)",
+            "per_step": 2.0,
+            "ms_per_step": 0.002155625000002374
+          },
+          {
+            "name": "Memcpy HtoD (Pinned -> Device)",
+            "per_step": 1.125,
+            "ms_per_step": 0.0016596249999996644
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pageable)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014679999999996198
+          },
+          {
+            "name": "Memcpy DtoH (Device -> Pinned)",
+            "per_step": 1.0,
+            "ms_per_step": 0.0014401250000003075
+          }
+        ],
+        "top_cpu_ops": [
+          {
+            "name": "cudaStreamSynchronize",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 6.989918374999999
+          },
+          {
+            "name": "cudaGraphLaunch",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.9259291250000002
+          },
+          {
+            "name": "cudaMemcpyAsync",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.06797099999999641
+          },
+          {
+            "name": "cudaLaunchKernel",
+            "per_step": 6.0,
+            "self_cpu_ms_per_step": 0.037698750000002744
+          },
+          {
+            "name": "Activity Buffer Request",
+            "per_step": 0.125,
+            "self_cpu_ms_per_step": 0.033867
+          },
+          {
+            "name": "aten::argmax",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01518925000000013
+          },
+          {
+            "name": "aten::copy_",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.01443812500000422
+          },
+          {
+            "name": "aten::all",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.013690249999999935
+          },
+          {
+            "name": "aten::ne",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.01247162499999996
+          },
+          {
+            "name": "aten::abs",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.01090587500000106
+          },
+          {
+            "name": "cudaMemsetAsync",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.009387375000000702
+          },
+          {
+            "name": "aten::isfinite",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0061852499999994846
+          },
+          {
+            "name": "aten::eq",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00595050000000117
+          },
+          {
+            "name": "aten::mul",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005626999999999952
+          },
+          {
+            "name": "aten::_local_scalar_dense",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.005223625000000425
+          },
+          {
+            "name": "aten::empty",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004999749999999324
+          },
+          {
+            "name": "aten::resize_",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.004800624999999343
+          },
+          {
+            "name": "aten::as_strided",
+            "per_step": 3.0,
+            "self_cpu_ms_per_step": 0.0031784999999989053
+          },
+          {
+            "name": "aten::slice",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0027855000000002973
+          },
+          {
+            "name": "aten::_to_copy",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002677624999999125
+          },
+          {
+            "name": "aten::empty_strided",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.002149249999999711
+          },
+          {
+            "name": "cudaStreamIsCapturing",
+            "per_step": 2.0,
+            "self_cpu_ms_per_step": 0.0018363749999996343
+          },
+          {
+            "name": "aten::item",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0016055000000008022
+          },
+          {
+            "name": "aten::to",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.0013563749999996161
+          },
+          {
+            "name": "aten::resolve_conj",
+            "per_step": 1.0,
+            "self_cpu_ms_per_step": 0.00029212500000039656
+          }
+        ]
+      }
+    }
+  ],
+  "complete": true
+}
