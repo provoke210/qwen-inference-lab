@@ -1,0 +1,12 @@
+step	exit	seconds
+pytest	0	206
+before-Qwen3-0.6B-float32-dense	0	35
+after-Qwen3-0.6B-float32-dense	0	12
+before-Qwen3-0.6B-float32-paged	0	13
+after-Qwen3-0.6B-float32-paged	0	11
+before-Qwen3-4B-float32-dense	0	147
+after-Qwen3-4B-float32-dense	0	34
+before-Qwen3-4B-float32-paged	0	36
+after-Qwen3-4B-float32-paged	0	33
+before-Qwen3-0.6B-bfloat16-dense	0	17
+after-Qwen3-0.6B-bfloat16-dense	0	14

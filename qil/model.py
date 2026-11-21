@@ -25,7 +25,10 @@ class ScaleNorm(nn.Module):
         self.epsilon = epsilon
 
     def forward(self, x):
-        normalized = x.float() * (x.float().square().mean(dim=-1, keepdim=True) + self.epsilon).rsqrt()
+        # Normalize in FP32, round to the input dtype, then scale (the checkpoint
+        # reference order). rms_norm is one fused kernel where PyTorch has one,
+        # instead of square/mean/add/rsqrt/mul.
+        normalized = F.rms_norm(x.float(), (x.shape[-1],), eps=self.epsilon)
         return normalized.to(x.dtype) * self.scale
 
 
@@ -56,14 +59,29 @@ class DecoderBlock(nn.Module):
 
     @staticmethod
     def rotation_terms(angles, dtype):
-        """Layer-independent [tokens, 1, dim/2] cos/sin, computed once per forward."""
-        return angles.cos().to(dtype)[:, None], angles.sin().to(dtype)[:, None]
+        """Layer-independent [tokens, 1, dim] terms, computed once per forward.
+
+        cos is repeated over both halves and sin carries the rotation's sign
+        (-sin, sin), so apply_rotation needs no split or concatenation.
+        """
+        cosine, sine = angles.cos(), angles.sin()
+        return (torch.cat((cosine, cosine), dim=-1).to(dtype)[:, None],
+                torch.cat((-sine, sine), dim=-1).to(dtype)[:, None])
 
     @staticmethod
     def apply_rotation(x, rotation):
-        cosine, sine = rotation
-        left, right = x.chunk(2, dim=-1)
-        return torch.cat((left * cosine - right * sine, left * sine + right * cosine), dim=-1)
+        """Rotate halves (left, right) to (left*cos - right*sin, right*cos + left*sin).
+
+        Bit-identical to the split form: roll swaps the halves and the sign
+        lives in the sin term (a - b*s == a + b*(-s) in IEEE arithmetic).
+        """
+        cosine, signed_sine = rotation
+        return x * cosine + x.roll(x.shape[-1] // 2, dims=-1) * signed_sine
+
+    def rotate_query_key(self, q, k, rotation):
+        """One rotation over the query and key heads together; returns views of q and k."""
+        both = self.apply_rotation(torch.cat((q, k), dim=1), rotation)
+        return both[:, :self.heads], both[:, self.heads:]
 
     @classmethod
     def rotate(cls, x, angles):
@@ -78,7 +96,7 @@ class DecoderBlock(nn.Module):
         q = self.query_norm(self.query(normalized).reshape(length, self.heads, cfg.head_dim))
         k = self.key_norm(self.key(normalized).reshape(length, self.kv_heads, cfg.head_dim))
         v = self.value(normalized).reshape(length, self.kv_heads, cfg.head_dim)
-        q, k = self.apply_rotation(q, rotation), self.apply_rotation(k, rotation)
+        q, k = self.rotate_query_key(q, k, rotation)
         pool.write(request_id, layer, start, k, v, slots=slots[start:])
         all_k, all_v = pool.read(request_id, layer, end, slots=slots)
         repetitions = self.heads // self.kv_heads
@@ -100,7 +118,7 @@ class DecoderBlock(nn.Module):
         q = self.query_norm(self.query(normalized).reshape(size, self.heads, cfg.head_dim))
         k = self.key_norm(self.key(normalized).reshape(size, self.kv_heads, cfg.head_dim))
         v = self.value(normalized).reshape(size, self.kv_heads, cfg.head_dim)
-        q, k = self.apply_rotation(q, rotation), self.apply_rotation(k, rotation)
+        q, k = self.rotate_query_key(q, k, rotation)
         pool.write_decode(batch, layer, k, v)
         attended = decode_attention(q, pool, batch, layer).reshape(size, -1)
         x = x + self.reduce(self.attention_output(attended))

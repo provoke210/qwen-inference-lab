@@ -34,6 +34,7 @@ def decode_attention(q, pool, batch, layer):
         return output
     pool.validate_decode_read(batch, layer)
     from .paged_attention import paged_attention
-    return paged_attention(q, pool.keys[layer], pool.values[layer], batch.page_table,
+    # The model passes q as a view of its joint query/key rotation.
+    return paged_attention(q.contiguous(), pool.keys[layer], pool.values[layer], batch.page_table,
                            batch.lengths, pool.page_size, max(batch.starts) + 1,
                            workspace=pool.paged_workspace)

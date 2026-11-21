@@ -1,0 +1,5 @@
+Qwen3-0.6B-bfloat16-dense	10/10	[]
+Qwen3-0.6B-float32-dense	10/10	[]
+Qwen3-0.6B-float32-paged	10/10	[]
+Qwen3-4B-float32-dense	10/10	[]
+Qwen3-4B-float32-paged	10/10	[]
