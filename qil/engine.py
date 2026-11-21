@@ -1,6 +1,8 @@
 """Standalone inference loop: planning -> forward -> token event -> release.
 
-Decode requests can share one model forward; prefill chunks execute individually.
+Decode requests share one model forward, including a lone request, so decode
+never takes the per-chunk prefill path; prefill chunks execute individually.
+batch_decode=False keeps the serial reference path for ablation.
 """
 from time import perf_counter
 import torch
@@ -25,7 +27,7 @@ class Engine:
         cfg = model.config
         weight = next(model.parameters())
         self.pool = PagePool(layers=cfg.num_hidden_layers, pages=num_pages, page_size=page_size,
-                             kv_heads=cfg.num_key_value_heads, head_dim=cfg.head_dim,
+                             kv_heads=getattr(model, 'kv_heads', cfg.num_key_value_heads), head_dim=cfg.head_dim,
                              dtype=weight.dtype, device=weight.device, decode_attention=decode_attention)
         self.scheduler = Scheduler(self.pool, token_budget=token_budget,
                                    prefill_chunk=prefill_chunk, max_active=max_active)
@@ -58,7 +60,7 @@ class Engine:
         plan = self.scheduler.plan()
         decode = [work for work in plan if self.batch_decode and
                   work.start >= len(self.scheduler.requests[work.request_id].prompt)]
-        decode_ids = {work.request_id for work in decode} if (len(decode) > 1 or self.pool.decode_attention != 'dense') else set()
+        decode_ids = {work.request_id for work in decode}
         decoded = False
         for work in plan:
             if work.request_id in decode_ids:
@@ -93,11 +95,13 @@ class Engine:
                 raise
         return events
 
-    @staticmethod
-    def _sample(logits):
+    def _sample(self, logits):
         if not torch.isfinite(logits).all().item():
             raise RuntimeError('model returned non-finite logits')
-        return logits.argmax(dim=-1).tolist()
+        tokens = logits.argmax(dim=-1).tolist()
+        # Under tensor parallelism every rank must continue from the same tokens.
+        agree = getattr(self.model, 'agree', None)
+        return agree(tokens) if agree else tokens
 
     def _complete_work(self, work, token):
         request = self.scheduler.requests[work.request_id]
@@ -130,6 +134,16 @@ class Engine:
             tpot_s=sum(gaps)/len(gaps) if gaps else None,
         )
 
+    def pop_result(self, request_id):
+        """Return a finished request's result and release its record.
+
+        result() keeps records readable indefinitely; a long-running caller
+        should take each finished request with this instead.
+        """
+        result = self.result(request_id)
+        self.scheduler.forget(request_id)
+        return result
+
     @property
     def idle(self):
         return self.scheduler.idle
@@ -144,10 +158,12 @@ class Engine:
             while not self.idle:
                 self.step()
         except Exception:
+            # Keep the records so the caller can inspect which request failed
+            # and why; release them with pop_result() afterwards.
             for request_id in request_ids:
                 self.cancel(request_id)
             raise
-        return [self.result(request_id) for request_id in request_ids]
+        return [self.pop_result(request_id) for request_id in request_ids]
 
     def close(self):
         for request_id in list(self.scheduler.active) + list(self.scheduler.waiting):

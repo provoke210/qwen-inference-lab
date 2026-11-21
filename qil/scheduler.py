@@ -55,16 +55,17 @@ class Scheduler:
         self.waiting.append(request.id)
 
     def plan(self):
-        for _ in range(len(self.waiting)):
-            if len(self.active) >= self.max_active:
-                break
-            request_id = self.waiting.popleft()
+        # Strict arrival order: a request that does not fit yet blocks the ones
+        # behind it. Letting smaller requests pass could starve a large one
+        # indefinitely; add() guarantees the head fits once capacity is free.
+        while self.waiting and len(self.active) < self.max_active:
+            request_id = self.waiting[0]
             request = self.requests[request_id]
-            if self.pool.admit(request_id, request.cache_limit):
-                request.state = 'active'
-                self.active.append(request_id)
-            else:
-                self.waiting.append(request_id)
+            if not self.pool.admit(request_id, request.cache_limit):
+                break
+            self.waiting.popleft()
+            request.state = 'active'
+            self.active.append(request_id)
         remaining = self.token_budget
         work = []
         for _ in range(len(self.active)):
@@ -97,6 +98,12 @@ class Scheduler:
             self.pool.release(request_id)
         request.state, request.finish_reason = state, reason
         return True
+
+    def forget(self, request_id):
+        """Drop a finished request's record so long-running use does not grow."""
+        if self.requests[request_id].state in ('waiting', 'active'):
+            raise ValueError('cannot forget an unfinished request; cancel it first')
+        del self.requests[request_id]
 
     @property
     def idle(self):

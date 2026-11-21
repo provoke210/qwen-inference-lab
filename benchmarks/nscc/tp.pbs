@@ -1,0 +1,42 @@
+#!/bin/bash -l
+#PBS -N qil-tp
+#PBS -q normal
+#PBS -l select=1:ncpus=32:ngpus=2:mem=220gb
+#PBS -l walltime=01:30:00
+#PBS -j oe
+# Submit with: qsub -P <project> -v QIL_ROOT=<work dir> <this file>
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+OUT=$R/results-tp; WL=$R/workload.json
+module load miniforge3/25.3.1
+export LD_PRELOAD=/app/apps/miniforge3/25.3.1/lib/libstdc++.so.6
+source $R/venv-vllm/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+export TRITON_CACHE_DIR=$R/triton/vllm-env
+rm -rf $OUT; mkdir -p $OUT
+STATUS=$OUT/status.tsv
+printf 'step\ttree\texit\tseconds\n' > $STATUS
+nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv > $OUT/environment.txt
+python -c "import torch,triton,transformers,vllm;print('torch',torch.__version__,'cuda',torch.version.cuda,'triton',triton.__version__,'transformers',transformers.__version__,'vllm',vllm.__version__)" >> $OUT/environment.txt 2>&1
+run() {
+  local step=$1 tree=$2; shift 2
+  echo "RUNNING $step" > $OUT/current.txt
+  local t0=$SECONDS
+  ( cd $R/$tree && PYTHONPATH=$R/$tree "$@" ) > $OUT/$step.log 2>&1
+  local code=$?
+  printf '%s\t%s\t%s\t%s\n' $step $tree $code $((SECONDS-t0)) >> $STATUS
+}
+run vllm-import new timeout 900 python -c "import torch, vllm; from vllm import LLM; print(vllm.__version__, torch.version.cuda, torch.cuda.get_device_name(0))"
+run pytest new python -m pytest -q --disable-warnings --junitxml=$OUT/pytest.xml
+for model in Qwen3-0.6B Qwen3-4B; do
+  for attn in dense paged; do
+    run tp-$model-fp32-$attn new python -m benchmarks.compare_tp --model $R/models/$model --workload $WL \
+      --sizes 1 2 --dtype float32 --decode-attention $attn --output $OUT/tp-$model-fp32-$attn.json
+  done
+done
+run tp-Qwen3-4B-fp32-dense-long new python -m benchmarks.compare_tp --model $R/models/Qwen3-4B --workload $WL \
+  --sizes 1 2 --dtype float32 --decode-attention dense --max-new-tokens 256 --runs 3 --output $OUT/tp-Qwen3-4B-fp32-dense-long.json
+run qil-single-fp32 new python -m benchmarks.compare_independent --backend qil --model $R/models/Qwen3-0.6B --workload $WL \
+  --dtype float32 --runs 5 --batch-decode --selective-logits --output $OUT/qil-single-fp32.json
+CUDA_VISIBLE_DEVICES=0 run vllm-fp32-eager new python -m benchmarks.compare_independent --backend vllm --model $R/models/Qwen3-0.6B --workload $WL \
+  --dtype float32 --runs 5 --output $OUT/vllm-fp32-eager.json
+echo "DONE" > $OUT/current.txt

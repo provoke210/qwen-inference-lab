@@ -2,6 +2,12 @@
 
 Architecture specification: Qwen checkpoint config and the Transformers
 Qwen3 reference. No Transformers model executes in this runtime.
+
+Tensor parallelism (tp_size > 1): each rank owns a contiguous slice of the
+attention heads, their KV heads and the MLP intermediate width, and keeps full
+copies of the embedding, norms and output head. The per-rank partial outputs of
+the attention and MLP output projections are summed across ranks (all-reduce),
+so every rank holds the same residual stream and runs the same program.
 """
 from pathlib import Path
 import torch
@@ -23,75 +29,99 @@ class ScaleNorm(nn.Module):
         return normalized.to(x.dtype) * self.scale
 
 
+def _identity(x):
+    return x
+
+
 class DecoderBlock(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, *, tp_size=1, reduce=_identity):
         super().__init__()
         self.cfg = cfg
+        # Local shares of this rank; equal to the full model when tp_size == 1.
+        self.heads = cfg.num_attention_heads // tp_size
+        self.kv_heads = cfg.num_key_value_heads // tp_size
+        intermediate = cfg.intermediate_size // tp_size
+        self.reduce = reduce
         self.before_attention = ScaleNorm(cfg.hidden_size, cfg.rms_norm_eps)
         self.before_mlp = ScaleNorm(cfg.hidden_size, cfg.rms_norm_eps)
-        self.query = nn.Linear(cfg.hidden_size, cfg.num_attention_heads * cfg.head_dim, bias=cfg.attention_bias)
-        self.key = nn.Linear(cfg.hidden_size, cfg.num_key_value_heads * cfg.head_dim, bias=cfg.attention_bias)
-        self.value = nn.Linear(cfg.hidden_size, cfg.num_key_value_heads * cfg.head_dim, bias=cfg.attention_bias)
-        self.attention_output = nn.Linear(cfg.num_attention_heads * cfg.head_dim, cfg.hidden_size, bias=cfg.attention_bias)
+        self.query = nn.Linear(cfg.hidden_size, self.heads * cfg.head_dim, bias=cfg.attention_bias)
+        self.key = nn.Linear(cfg.hidden_size, self.kv_heads * cfg.head_dim, bias=cfg.attention_bias)
+        self.value = nn.Linear(cfg.hidden_size, self.kv_heads * cfg.head_dim, bias=cfg.attention_bias)
+        self.attention_output = nn.Linear(self.heads * cfg.head_dim, cfg.hidden_size, bias=cfg.attention_bias)
         self.query_norm = ScaleNorm(cfg.head_dim, cfg.rms_norm_eps)
         self.key_norm = ScaleNorm(cfg.head_dim, cfg.rms_norm_eps)
-        self.gate = nn.Linear(cfg.hidden_size, cfg.intermediate_size, bias=False)
-        self.expand = nn.Linear(cfg.hidden_size, cfg.intermediate_size, bias=False)
-        self.contract = nn.Linear(cfg.intermediate_size, cfg.hidden_size, bias=False)
+        self.gate = nn.Linear(cfg.hidden_size, intermediate, bias=False)
+        self.expand = nn.Linear(cfg.hidden_size, intermediate, bias=False)
+        self.contract = nn.Linear(intermediate, cfg.hidden_size, bias=False)
 
     @staticmethod
-    def rotate(x, angles):
-        cosine, sine = angles.cos().to(x.dtype)[:, None], angles.sin().to(x.dtype)[:, None]
+    def rotation_terms(angles, dtype):
+        """Layer-independent [tokens, 1, dim/2] cos/sin, computed once per forward."""
+        return angles.cos().to(dtype)[:, None], angles.sin().to(dtype)[:, None]
+
+    @staticmethod
+    def apply_rotation(x, rotation):
+        cosine, sine = rotation
         left, right = x.chunk(2, dim=-1)
         return torch.cat((left * cosine - right * sine, left * sine + right * cosine), dim=-1)
 
-    def forward(self, x, *, positions, angles, pool, request_id, layer):
+    @classmethod
+    def rotate(cls, x, angles):
+        return cls.apply_rotation(x, cls.rotation_terms(angles, x.dtype))
+
+    def forward(self, x, *, start, rotation, slots, mask, pool, request_id, layer):
+        """slots/mask cover absolute positions [0, start + len(x)); no device reads."""
         cfg = self.cfg
-        length = len(positions)
+        length = x.shape[0]
+        end = start + length
         normalized = self.before_attention(x)
-        q = self.query_norm(self.query(normalized).reshape(length, cfg.num_attention_heads, cfg.head_dim))
-        k = self.key_norm(self.key(normalized).reshape(length, cfg.num_key_value_heads, cfg.head_dim))
-        v = self.value(normalized).reshape(length, cfg.num_key_value_heads, cfg.head_dim)
-        q, k = self.rotate(q, angles), self.rotate(k, angles)
-        start, end = int(positions[0]), int(positions[-1]) + 1
-        pool.write(request_id, layer, start, k, v)
-        all_k, all_v = pool.read(request_id, layer, end)
-        repetitions = cfg.num_attention_heads // cfg.num_key_value_heads
+        q = self.query_norm(self.query(normalized).reshape(length, self.heads, cfg.head_dim))
+        k = self.key_norm(self.key(normalized).reshape(length, self.kv_heads, cfg.head_dim))
+        v = self.value(normalized).reshape(length, self.kv_heads, cfg.head_dim)
+        q, k = self.apply_rotation(q, rotation), self.apply_rotation(k, rotation)
+        pool.write(request_id, layer, start, k, v, slots=slots[start:])
+        all_k, all_v = pool.read(request_id, layer, end, slots=slots)
+        repetitions = self.heads // self.kv_heads
         all_k = all_k.repeat_interleave(repetitions, dim=1).transpose(0, 1)
         all_v = all_v.repeat_interleave(repetitions, dim=1).transpose(0, 1)
-        # Explicit absolute-position mask works for both cached chunks and decode.
-        # is_causal=True alone would align a short query to the wrong KV positions.
-        mask = torch.arange(end, device=x.device)[None, :] <= positions[:, None]
         attended = F.scaled_dot_product_attention(
             q.transpose(0, 1)[None], all_k[None], all_v[None],
             attn_mask=mask, dropout_p=0., scale=cfg.head_dim ** -.5,
         )[0].transpose(0, 1).reshape(length, -1)
-        x = x + self.attention_output(attended)
+        x = x + self.reduce(self.attention_output(attended))
         normalized = self.before_mlp(x)
-        return x + self.contract(F.silu(self.gate(normalized)) * self.expand(normalized))
+        return x + self.reduce(self.contract(F.silu(self.gate(normalized)) * self.expand(normalized)))
 
-    def forward_decode(self, x, *, angles, pool, batch, layer):
+    def forward_decode(self, x, *, rotation, pool, batch, layer):
         """A single batched projection/attention/MLP for independent requests."""
         cfg = self.cfg
         size = len(batch.request_ids)
         normalized = self.before_attention(x)
-        q = self.query_norm(self.query(normalized).reshape(size, cfg.num_attention_heads, cfg.head_dim))
-        k = self.key_norm(self.key(normalized).reshape(size, cfg.num_key_value_heads, cfg.head_dim))
-        v = self.value(normalized).reshape(size, cfg.num_key_value_heads, cfg.head_dim)
-        q, k = self.rotate(q, angles), self.rotate(k, angles)
+        q = self.query_norm(self.query(normalized).reshape(size, self.heads, cfg.head_dim))
+        k = self.key_norm(self.key(normalized).reshape(size, self.kv_heads, cfg.head_dim))
+        v = self.value(normalized).reshape(size, self.kv_heads, cfg.head_dim)
+        q, k = self.apply_rotation(q, rotation), self.apply_rotation(k, rotation)
         pool.write_decode(batch, layer, k, v)
         attended = decode_attention(q, pool, batch, layer).reshape(size, -1)
-        x = x + self.attention_output(attended)
+        x = x + self.reduce(self.attention_output(attended))
         normalized = self.before_mlp(x)
-        return x + self.contract(F.silu(self.gate(normalized)) * self.expand(normalized))
+        return x + self.reduce(self.contract(F.silu(self.gate(normalized)) * self.expand(normalized)))
 
 
 class Qwen3(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, *, tp_rank=0, tp_size=1):
         super().__init__()
+        if type(tp_size) is not int or type(tp_rank) is not int or not 0 <= tp_rank < tp_size:
+            raise ValueError('tensor-parallel rank must satisfy 0 <= tp_rank < tp_size')
+        if config.num_key_value_heads % tp_size or config.intermediate_size % tp_size:
+            raise ValueError('tp_size must divide the KV head count and the MLP intermediate size')
         self.config = config
+        self.tp_rank, self.tp_size = tp_rank, tp_size
+        self.kv_heads = config.num_key_value_heads // tp_size
+        reduce = self._all_reduce if tp_size > 1 else _identity
         self.embedding = nn.Embedding(config.vocab_size, config.hidden_size)
-        self.blocks = nn.ModuleList(DecoderBlock(config) for _ in range(config.num_hidden_layers))
+        self.blocks = nn.ModuleList(DecoderBlock(config, tp_size=tp_size, reduce=reduce)
+                                    for _ in range(config.num_hidden_layers))
         self.final_norm = ScaleNorm(config.hidden_size, config.rms_norm_eps)
         self.head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
         if config.tie_word_embeddings:
@@ -102,6 +132,46 @@ class Qwen3(nn.Module):
         # module buffers so model.to(bfloat16) cannot round the frequencies.
         exponent = torch.arange(0, config.head_dim, 2, device='cpu', dtype=torch.float32) / config.head_dim
         self._rope_frequencies_cpu = 1.0 / (config.rope_theta ** exponent)
+
+    @staticmethod
+    def _all_reduce(partial):
+        """Sum this rank's partial projection output with every other rank's, in place."""
+        import torch.distributed as dist
+        dist.all_reduce(partial)
+        return partial
+
+    def agree(self, tokens):
+        """Make rank 0's sampled tokens authoritative on every rank.
+
+        The ranks see the same reduced hidden state, but their replicated head
+        computations are not guaranteed bit-identical; one differing argmax
+        would silently desynchronize their request and cache state.
+        """
+        if self.tp_size == 1:
+            return tokens
+        import torch.distributed as dist
+        shared = torch.tensor(tokens, dtype=torch.long, device=self.embedding.weight.device)
+        dist.broadcast(shared, src=0)
+        return shared.tolist()
+
+    def _shard(self, name, tensor):
+        """This rank's slice of a full checkpoint tensor (identity when tp_size == 1)."""
+        if self.tp_size == 1 or '.layers.' not in name:
+            return tensor
+        cfg, rank, size = self.config, self.tp_rank, self.tp_size
+        module, kind = name.split('.')[-2:]
+        heads = cfg.num_attention_heads // size * cfg.head_dim
+        kv = cfg.num_key_value_heads // size * cfg.head_dim
+        mlp = cfg.intermediate_size // size
+        rows = {'q_proj': heads, 'k_proj': kv, 'v_proj': kv, 'gate_proj': mlp, 'up_proj': mlp}
+        columns = {'o_proj': heads, 'down_proj': mlp}
+        if module in rows:  # output features (weight rows and bias) belong to one rank
+            return tensor[rank * rows[module]:(rank + 1) * rows[module]]
+        if module in columns:
+            if kind == 'bias':  # added once to the reduced sum
+                return tensor if rank == 0 else torch.zeros_like(tensor)
+            return tensor[:, rank * columns[module]:(rank + 1) * columns[module]]
+        return tensor  # norms are replicated
 
     def rotary_angles(self, positions):
         frequencies = self._rope_frequencies_cpu.to(device=positions.device)
@@ -122,10 +192,14 @@ class Qwen3(nn.Module):
         device = self.embedding.weight.device
         tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
         positions = torch.arange(start, end, device=device)
-        angles = self.rotary_angles(positions)
         hidden = self.embedding(tokens)
+        rotation = DecoderBlock.rotation_terms(self.rotary_angles(positions), hidden.dtype)
+        slots = pool.prefill_slots(request_id, end)
+        # Explicit absolute-position mask works for both cached chunks and decode.
+        # is_causal=True alone would align a short query to the wrong KV positions.
+        mask = torch.arange(end, device=device)[None, :] <= positions[:, None]
         for index, block in enumerate(self.blocks):
-            hidden = block(hidden, positions=positions, angles=angles,
+            hidden = block(hidden, start=start, rotation=rotation, slots=slots, mask=mask,
                            pool=pool, request_id=request_id, layer=index)
         if logits_mode == 'none':
             return None
@@ -150,10 +224,10 @@ class Qwen3(nn.Module):
         batch = pool.prepare_decode(request_ids, starts)
         device = self.embedding.weight.device
         tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
-        angles = self.rotary_angles(batch.positions)
         hidden = self.embedding(tokens)
+        rotation = DecoderBlock.rotation_terms(self.rotary_angles(batch.positions), hidden.dtype)
         for index, block in enumerate(self.blocks):
-            hidden = block.forward_decode(hidden, angles=angles, pool=pool, batch=batch, layer=index)
+            hidden = block.forward_decode(hidden, rotation=rotation, pool=pool, batch=batch, layer=index)
         return self.head(self.final_norm(hidden)).float()
 
     def checkpoint_parameters(self):
@@ -176,10 +250,10 @@ class Qwen3(nn.Module):
         return result
 
     @classmethod
-    def from_directory(cls, path, *, device='cpu', dtype=torch.float32):
+    def from_directory(cls, path, *, device='cpu', dtype=torch.float32, tp_rank=0, tp_size=1):
         from safetensors import safe_open
         path = Path(path)
-        model = cls(ModelConfig.read(path)).to(device=device, dtype=dtype).eval()
+        model = cls(ModelConfig.read(path), tp_rank=tp_rank, tp_size=tp_size).to(device=device, dtype=dtype).eval()
         expected = model.checkpoint_parameters()
         files = sorted(path.glob('*.safetensors'))
         if not files:
@@ -191,7 +265,7 @@ class Qwen3(nn.Module):
                     for name in shard.keys():
                         if name not in expected or name in loaded_names:
                             raise ValueError(f'unexpected or duplicate checkpoint tensor: {name}')
-                        target, source = expected[name], shard.get_tensor(name)
+                        target, source = expected[name], model._shard(name, shard.get_tensor(name))
                         if target.shape != source.shape:
                             raise ValueError(f'checkpoint shape mismatch: {name}')
                         source = source.to(device=device, dtype=dtype)

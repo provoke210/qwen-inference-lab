@@ -52,11 +52,12 @@ def test_waiting_cancellation_and_exception_cleanup(pair, monkeypatch):
     engine.step()
     assert engine.result(waiting)['state'] == 'waiting'
     assert engine.cancel(waiting)
-    forward = native.forward
+    # The active request has finished prefill, so this step is a decode.
+    forward = native.forward_decode
     def fail(*args, **kwargs):
         forward(*args, **kwargs)
         raise RuntimeError('injected failure after KV write')
-    monkeypatch.setattr(native, 'forward', fail)
+    monkeypatch.setattr(native, 'forward_decode', fail)
     with pytest.raises(RuntimeError, match='injected'):
         engine.step()
     assert engine.result(active)['state'] == 'failed' and engine.idle
@@ -86,3 +87,54 @@ def test_generate_admission_error_cleans_earlier_requests(pair):
     with pytest.raises(ValueError, match='capacity'):
         engine.generate([[1], [1] * 8], max_new_tokens=2)
     assert engine.idle and not engine.pool.tables
+
+
+def test_admission_is_first_come_first_served(pair):
+    """A large request at the head is not overtaken by smaller ones that would fit."""
+    native, reference = pair
+    engine = Engine(native, num_pages=4, page_size=4, max_active=4, token_budget=16)
+    running = engine.submit([1, 2], max_new_tokens=7, ignore_eos=True)      # 2 pages
+    large = engine.submit([3] * 6, max_new_tokens=7, ignore_eos=True)       # 3 pages: must wait
+    small = engine.submit([5], max_new_tokens=2, ignore_eos=True)           # 1 page: would fit now
+    engine.step()
+    assert [engine.result(rid)['state'] for rid in (running, large, small)] == ['active', 'waiting', 'waiting']
+    while engine.result(large)['state'] == 'waiting':
+        assert engine.result(small)['state'] == 'waiting'
+        engine.step()
+    while not engine.idle:
+        engine.step()
+    for rid, prompt, count in ((running, [1, 2], 7), (large, [3] * 6, 7), (small, [5], 2)):
+        assert engine.result(rid)['token_ids'] == greedy(reference, prompt, count)
+    assert not engine.pool.tables and len(engine.pool.free) == 4
+
+
+def test_finished_records_can_be_released(pair):
+    native, reference = pair
+    engine = Engine(native)
+    live = engine.submit([1, 2], max_new_tokens=3, ignore_eos=True)
+    with pytest.raises(ValueError, match='unfinished'):
+        engine.pop_result(live)
+    while not engine.idle:
+        engine.step()
+    assert engine.pop_result(live)['token_ids'] == greedy(reference, [1, 2], 3)
+    with pytest.raises(KeyError):
+        engine.result(live)
+    engine.generate([[4], [5, 6]], max_new_tokens=2, ignore_eos=True)
+    assert not engine.scheduler.requests
+
+
+
+def test_failed_generate_keeps_records_for_inspection(pair, monkeypatch):
+    native, _ = pair
+    engine = Engine(native)
+
+    def fail(*args, **kwargs):
+        raise RuntimeError('injected decode failure')
+
+    monkeypatch.setattr(native, 'forward_decode', fail)
+    with pytest.raises(RuntimeError, match='injected'):
+        engine.generate([[1, 2], [3]], max_new_tokens=3, ignore_eos=True)
+    rows = [engine.pop_result(rid) for rid in (0, 1)]
+    assert [r['state'] for r in rows] == ['failed', 'failed']
+    assert all('injected' in r['error'] for r in rows)
+    assert engine.idle and not engine.pool.tables and not engine.scheduler.requests

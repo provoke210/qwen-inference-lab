@@ -1,0 +1,26 @@
+{
+  "dtype": "float32",
+  "prompt_length": 32,
+  "max_new_tokens": 1000,
+  "torch": "2.8.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "compiled_kernel_variants": 83,
+  "variants_after_warm": 83,
+  "cold": {
+    "total_s": 50.36469219322316,
+    "prefill_s": 4.681113207014278,
+    "decode_median_ms": 25.168658001348376,
+    "decode_max_ms": 1804.0346109773964,
+    "stall_steps": 63,
+    "stall_total_s": 23.023958783131093
+  },
+  "warm": {
+    "total_s": 23.622209704248235,
+    "prefill_s": 0.031410914147272706,
+    "decode_median_ms": 23.68834102526307,
+    "decode_max_ms": 26.954025961458683,
+    "stall_steps": 0,
+    "stall_total_s": 0
+  },
+  "warm_outputs_match": true
+}

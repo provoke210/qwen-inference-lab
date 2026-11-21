@@ -1,0 +1,8 @@
+{"name": "input128_batch1", "tp_size": 1, "tok_per_s": 45.009991494137374, "matches": true}
+{"name": "input128_batch1", "tp_size": 2, "tok_per_s": 38.44594807721522, "matches": true}
+{"name": "input128_batch4", "tp_size": 1, "tok_per_s": 174.75869500692875, "matches": true}
+{"name": "input128_batch4", "tp_size": 2, "tok_per_s": 138.1438067410961, "matches": true}
+{"name": "input512_batch1", "tp_size": 1, "tok_per_s": 44.502763773327295, "matches": true}
+{"name": "input512_batch1", "tp_size": 2, "tok_per_s": 36.274390050424174, "matches": true}
+{"name": "input512_batch4", "tp_size": 1, "tok_per_s": 130.80565282194016, "matches": true}
+{"name": "input512_batch4", "tp_size": 2, "tok_per_s": 97.53423885357682, "matches": true}

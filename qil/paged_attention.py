@@ -3,6 +3,9 @@
 Each program reads a 64-token partition through the request's page table for
 one query head. FP32 local softmax statistics and weighted values are merged by
 a second kernel. GQA maps query heads to KV heads by integer division.
+The page-table width and partition count grow with the context, so they are
+runtime arguments: as constexprs every new value would compile a new kernel
+during generation. Only the merge width is specialized, in power-of-two buckets.
 Only imported by explicit CUDA paged mode. Prefill continues to use PyTorch SDPA.
 """
 import torch
@@ -13,7 +16,7 @@ import triton.language as tl
 @triton.jit
 def _partition(Q, K, V, TABLE, LENGTH, PARTIAL, MAXIMUM, DENOM,
                H: tl.constexpr, KVH: tl.constexpr, D: tl.constexpr,
-               PAGE: tl.constexpr, TABLE_WIDTH: tl.constexpr, PARTS: tl.constexpr,
+               PAGE: tl.constexpr, TABLE_WIDTH, PARTS,
                BLOCK: tl.constexpr, WIDTH: tl.constexpr, SCALE: tl.constexpr):
     row, head, part = tl.program_id(0), tl.program_id(1), tl.program_id(2)
     length = tl.load(LENGTH + row)
@@ -43,7 +46,7 @@ def _partition(Q, K, V, TABLE, LENGTH, PARTIAL, MAXIMUM, DENOM,
 
 @triton.jit
 def _merge(PARTIAL, MAXIMUM, DENOM, OUT, H: tl.constexpr, D: tl.constexpr,
-           PARTS: tl.constexpr, PWIDTH: tl.constexpr, WIDTH: tl.constexpr):
+           PARTS, PWIDTH: tl.constexpr, WIDTH: tl.constexpr):
     row, head = tl.program_id(0), tl.program_id(1)
     part = tl.arange(0, PWIDTH)
     dim = tl.arange(0, WIDTH)
@@ -58,11 +61,24 @@ def _merge(PARTIAL, MAXIMUM, DENOM, OUT, H: tl.constexpr, D: tl.constexpr,
     tl.store(OUT + (row * H + head) * D + dim, numerator / denominator, mask=dim < D)
 
 
-def paged_attention(q, keys, values, page_table, lengths, page_size, max_length):
+def _scratch(workspace, name, size, device):
+    """Flat FP32 buffer of at least size elements, reused across layers and steps."""
+    if workspace is None:
+        return torch.empty(size, dtype=torch.float32, device=device)
+    buffer = workspace.get(name)
+    if buffer is None or buffer.device != device or buffer.numel() < size:
+        grown = size if buffer is None or buffer.device != device else max(size, 2 * buffer.numel())
+        buffer = workspace[name] = torch.empty(grown, dtype=torch.float32, device=device)
+    return buffer
+
+
+def paged_attention(q, keys, values, page_table, lengths, page_size, max_length, workspace=None):
     """Internal kernel wrapper. PagePool validates ownership and written prefixes.
 
     Metadata comes from prepare_decode, not arbitrary user-provided GPU tables.
     No device-to-host length reads or temporary [B, context, heads, dim] tensors.
+    workspace is an optional dict owning the partition scratch buffers; both
+    kernels address them as flat arrays, so an oversized buffer is valid.
     """
     if q.ndim != 3 or keys.ndim != 3 or keys.shape != values.shape:
         raise ValueError('invalid paged attention tensor shape')
@@ -79,9 +95,9 @@ def paged_attention(q, keys, values, page_table, lengths, page_size, max_length)
         raise ValueError('unsupported paged attention layout')
     block = 64
     parts = triton.cdiv(max_length, block)
-    partial = torch.empty((batch, heads, parts, dim), dtype=torch.float32, device=q.device)
-    maxima = torch.empty((batch, heads, parts), dtype=torch.float32, device=q.device)
-    denominator = torch.empty_like(maxima)
+    partial = _scratch(workspace, 'partial', batch * heads * parts * dim, q.device)
+    maxima = _scratch(workspace, 'maxima', batch * heads * parts, q.device)
+    denominator = _scratch(workspace, 'denominator', batch * heads * parts, q.device)
     output = torch.empty_like(q)
     with torch.cuda.device(q.device):
         _partition[(batch, heads, parts)](

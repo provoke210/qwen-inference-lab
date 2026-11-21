@@ -78,3 +78,27 @@ def test_unsupported_architectures_are_rejected(pair, tmp_path, patch):
     (tmp_path / 'config.json').write_text(json.dumps(raw))
     with pytest.raises(ValueError):
         ModelConfig.read(tmp_path)
+
+
+def _write_config(reference, path, **changes):
+    raw = reference.config.to_dict()
+    raw.pop('rope_theta', None)
+    raw.pop('rope_scaling', None)
+    raw.update(changes)
+    (path / 'config.json').write_text(json.dumps(raw))
+
+
+@pytest.mark.parametrize('rope', [dict(rope_type='default', rope_theta=12345.),
+                                  dict(rope_type='default', rope_theta=12345., partial_rotary_factor=1.0)])
+def test_transformers5_rope_parameters_are_read(pair, tmp_path, rope):
+    """Transformers 5 stores RoPE settings as rope_parameters instead of rope_theta."""
+    _write_config(pair[1], tmp_path, rope_parameters=rope)
+    assert ModelConfig.read(tmp_path).rope_theta == 12345.
+
+
+@pytest.mark.parametrize('rope', [dict(rope_type='yarn', rope_theta=1e6, factor=4.0),
+                                  dict(rope_type='default', rope_theta=1e6, partial_rotary_factor=0.5)])
+def test_transformers5_scaled_rope_is_rejected(pair, tmp_path, rope):
+    _write_config(pair[1], tmp_path, rope_parameters=rope)
+    with pytest.raises(ValueError, match='RoPE'):
+        ModelConfig.read(tmp_path)

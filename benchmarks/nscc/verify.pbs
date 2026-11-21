@@ -1,0 +1,59 @@
+#!/bin/bash -l
+#PBS -N qil-verify
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=01:30:00
+#PBS -j oe
+# Submit with: qsub -P <project> -v QIL_ROOT=<work dir> <this file>
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+OUT=$R/results; MODEL=$R/models/Qwen3-0.6B; WL=$R/workload.json
+module load miniforge3/25.3.1
+source $R/venv/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+rm -rf $OUT $R/triton; mkdir -p $OUT $R/triton
+STATUS=$OUT/status.tsv
+printf 'step\ttree\texit\tseconds\n' > $STATUS
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv > $OUT/environment.txt
+python -c "import torch,triton,transformers;print('torch',torch.__version__,'triton',triton.__version__,'transformers',transformers.__version__)" >> $OUT/environment.txt 2>&1
+
+run() {  # run <step> <tree> <command...>
+  local step=$1 tree=$2; shift 2
+  echo "RUNNING $step $tree" > $OUT/current.txt
+  local t0=$SECONDS
+  ( cd $R/$tree && PYTHONPATH=$R/$tree "$@" ) > $OUT/$step.$tree.log 2>&1
+  local code=$?
+  printf '%s\t%s\t%s\t%s\n' $step $tree $code $((SECONDS-t0)) >> $STATUS
+}
+
+for tree in base new; do
+  export TRITON_CACHE_DIR=$R/triton/$tree
+  run pytest $tree python -m pytest -q --disable-warnings --junitxml=$OUT/pytest.$tree.xml
+done
+for tree in base new; do
+  export TRITON_CACHE_DIR=$R/triton/$tree-compile
+  run compile $tree python $R/tools/diagnose_paged_compile.py --model $MODEL --output $OUT/compile.$tree.json
+done
+for tree in base new; do
+  export TRITON_CACHE_DIR=$R/triton/$tree
+  for attn in dense paged; do
+    run perf-fp32-$attn $tree python -m benchmarks.compare_independent --backend qil --model $MODEL --workload $WL \
+      --dtype float32 --runs 5 --batch-decode --selective-logits --decode-attention $attn --output $OUT/perf-fp32-$attn.$tree.json
+  done
+done
+export TRITON_CACHE_DIR=$R/triton/new
+for group in "short 17 41 83 128" "long 63 127 255 511"; do
+  set -- $group; label=$1; shift
+  for attn in dense paged; do
+    run accept-fp32-$attn-$label new python -m benchmarks.validate_batched --model $MODEL --workload $WL --dtype float32 \
+      --reference-attention sdpa --sdpa-backend efficient --reference-cache --decode-attention $attn \
+      --prompt-lengths "$@" --output $OUT/accept-fp32-$attn-$label.new.json
+  done
+  run accept-bf16-dense-$label new python -m benchmarks.validate_batched --model $MODEL --workload $WL --dtype bfloat16 \
+    --reference-attention sdpa --sdpa-backend math --reference-cache --decode-attention dense \
+    --prompt-lengths "$@" --output $OUT/accept-bf16-dense-$label.new.json
+done
+for tree in base new; do
+  export TRITON_CACHE_DIR=$R/triton/$tree
+  run profile-paged-fp32 $tree python -m benchmarks.profile_paged --model $MODEL --workload $WL --dtype float32 --output $OUT/profile-paged-fp32.$tree.json
+done
+echo "DONE" > $OUT/current.txt

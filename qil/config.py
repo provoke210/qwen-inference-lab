@@ -38,7 +38,18 @@ class ModelConfig:
             raise ValueError('only dense Qwen3 text checkpoints are supported')
         if data.get('rope_scaling') is not None or data.get('use_sliding_window', False):
             raise ValueError('scaled RoPE and sliding attention are not supported')
-        if any(t != 'full_attention' for t in data.get('layer_types', [])):
+        # Transformers 5 writes RoPE settings as rope_parameters instead of a
+        # top-level rope_theta; only the unscaled (default) rotation is supported.
+        # Keys left at their neutral value describe plain RoPE and are accepted.
+        neutral = {'partial_rotary_factor': 1.0, 'factor': 1.0}
+        rope = {k: v for k, v in (data.get('rope_parameters') or {}).items()
+                if v is not None and neutral.get(k, object()) != v}
+        if rope:
+            if rope.get('rope_type', 'default') != 'default' or set(rope) - {'rope_type', 'rope_theta'}:
+                raise ValueError('scaled RoPE and sliding attention are not supported')
+            if 'rope_theta' in rope:
+                data = {**data, 'rope_theta': rope['rope_theta']}
+        if any(t != 'full_attention' for t in data.get('layer_types') or []):
             raise ValueError('all layers must use full attention')
         if data.get('hidden_act', 'silu') != 'silu':
             raise ValueError('only SiLU gated MLP is supported')
