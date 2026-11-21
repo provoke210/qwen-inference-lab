@@ -52,11 +52,12 @@ def test_waiting_cancellation_and_exception_cleanup(pair, monkeypatch):
     engine.step()
     assert engine.result(waiting)['state'] == 'waiting'
     assert engine.cancel(waiting)
-    forward = native.forward
+    # The active request has finished prefill, so this step is a decode.
+    forward = native.forward_decode
     def fail(*args, **kwargs):
         forward(*args, **kwargs)
         raise RuntimeError('injected failure after KV write')
-    monkeypatch.setattr(native, 'forward', fail)
+    monkeypatch.setattr(native, 'forward_decode', fail)
     with pytest.raises(RuntimeError, match='injected'):
         engine.step()
     assert engine.result(active)['state'] == 'failed' and engine.idle

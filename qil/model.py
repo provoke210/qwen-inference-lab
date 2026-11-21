@@ -40,28 +40,35 @@ class DecoderBlock(nn.Module):
         self.contract = nn.Linear(cfg.intermediate_size, cfg.hidden_size, bias=False)
 
     @staticmethod
-    def rotate(x, angles):
-        cosine, sine = angles.cos().to(x.dtype)[:, None], angles.sin().to(x.dtype)[:, None]
+    def rotation_terms(angles, dtype):
+        """Layer-independent [tokens, 1, dim/2] cos/sin, computed once per forward."""
+        return angles.cos().to(dtype)[:, None], angles.sin().to(dtype)[:, None]
+
+    @staticmethod
+    def apply_rotation(x, rotation):
+        cosine, sine = rotation
         left, right = x.chunk(2, dim=-1)
         return torch.cat((left * cosine - right * sine, left * sine + right * cosine), dim=-1)
 
-    def forward(self, x, *, positions, angles, pool, request_id, layer):
+    @classmethod
+    def rotate(cls, x, angles):
+        return cls.apply_rotation(x, cls.rotation_terms(angles, x.dtype))
+
+    def forward(self, x, *, start, rotation, slots, mask, pool, request_id, layer):
+        """slots/mask cover absolute positions [0, start + len(x)); no device reads."""
         cfg = self.cfg
-        length = len(positions)
+        length = x.shape[0]
+        end = start + length
         normalized = self.before_attention(x)
         q = self.query_norm(self.query(normalized).reshape(length, cfg.num_attention_heads, cfg.head_dim))
         k = self.key_norm(self.key(normalized).reshape(length, cfg.num_key_value_heads, cfg.head_dim))
         v = self.value(normalized).reshape(length, cfg.num_key_value_heads, cfg.head_dim)
-        q, k = self.rotate(q, angles), self.rotate(k, angles)
-        start, end = int(positions[0]), int(positions[-1]) + 1
-        pool.write(request_id, layer, start, k, v)
-        all_k, all_v = pool.read(request_id, layer, end)
+        q, k = self.apply_rotation(q, rotation), self.apply_rotation(k, rotation)
+        pool.write(request_id, layer, start, k, v, slots=slots[start:])
+        all_k, all_v = pool.read(request_id, layer, end, slots=slots)
         repetitions = cfg.num_attention_heads // cfg.num_key_value_heads
         all_k = all_k.repeat_interleave(repetitions, dim=1).transpose(0, 1)
         all_v = all_v.repeat_interleave(repetitions, dim=1).transpose(0, 1)
-        # Explicit absolute-position mask works for both cached chunks and decode.
-        # is_causal=True alone would align a short query to the wrong KV positions.
-        mask = torch.arange(end, device=x.device)[None, :] <= positions[:, None]
         attended = F.scaled_dot_product_attention(
             q.transpose(0, 1)[None], all_k[None], all_v[None],
             attn_mask=mask, dropout_p=0., scale=cfg.head_dim ** -.5,
@@ -70,7 +77,7 @@ class DecoderBlock(nn.Module):
         normalized = self.before_mlp(x)
         return x + self.contract(F.silu(self.gate(normalized)) * self.expand(normalized))
 
-    def forward_decode(self, x, *, angles, pool, batch, layer):
+    def forward_decode(self, x, *, rotation, pool, batch, layer):
         """A single batched projection/attention/MLP for independent requests."""
         cfg = self.cfg
         size = len(batch.request_ids)
@@ -78,7 +85,7 @@ class DecoderBlock(nn.Module):
         q = self.query_norm(self.query(normalized).reshape(size, cfg.num_attention_heads, cfg.head_dim))
         k = self.key_norm(self.key(normalized).reshape(size, cfg.num_key_value_heads, cfg.head_dim))
         v = self.value(normalized).reshape(size, cfg.num_key_value_heads, cfg.head_dim)
-        q, k = self.rotate(q, angles), self.rotate(k, angles)
+        q, k = self.apply_rotation(q, rotation), self.apply_rotation(k, rotation)
         pool.write_decode(batch, layer, k, v)
         attended = decode_attention(q, pool, batch, layer).reshape(size, -1)
         x = x + self.attention_output(attended)
@@ -122,10 +129,14 @@ class Qwen3(nn.Module):
         device = self.embedding.weight.device
         tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
         positions = torch.arange(start, end, device=device)
-        angles = self.rotary_angles(positions)
         hidden = self.embedding(tokens)
+        rotation = DecoderBlock.rotation_terms(self.rotary_angles(positions), hidden.dtype)
+        slots = pool.prefill_slots(request_id, end)
+        # Explicit absolute-position mask works for both cached chunks and decode.
+        # is_causal=True alone would align a short query to the wrong KV positions.
+        mask = torch.arange(end, device=device)[None, :] <= positions[:, None]
         for index, block in enumerate(self.blocks):
-            hidden = block(hidden, positions=positions, angles=angles,
+            hidden = block(hidden, start=start, rotation=rotation, slots=slots, mask=mask,
                            pool=pool, request_id=request_id, layer=index)
         if logits_mode == 'none':
             return None
@@ -150,10 +161,10 @@ class Qwen3(nn.Module):
         batch = pool.prepare_decode(request_ids, starts)
         device = self.embedding.weight.device
         tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
-        angles = self.rotary_angles(batch.positions)
         hidden = self.embedding(tokens)
+        rotation = DecoderBlock.rotation_terms(self.rotary_angles(batch.positions), hidden.dtype)
         for index, block in enumerate(self.blocks):
-            hidden = block.forward_decode(hidden, angles=angles, pool=pool, batch=batch, layer=index)
+            hidden = block.forward_decode(hidden, rotation=rotation, pool=pool, batch=batch, layer=index)
         return self.head(self.final_norm(hidden)).float()
 
     def checkpoint_parameters(self):

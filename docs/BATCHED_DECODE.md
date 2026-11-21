@@ -26,7 +26,8 @@ finally:
 `batch_decode=True` 为默认值；`False` 保留逐请求执行路径，用于正确性和性能消融。
 后续默认增加 `selective_logits=True`；复现本文完整旧路径还需设置 `selective_logits=False`，见 [按需 logits](SELECTIVE_LOGITS.md)。
 调度计划里至少有两个已经完成 Prefill 的请求时，将它们各自的一个 token 合成一次模型前向。
-单请求 Decode 和所有 Prefill chunk 继续使用原来的 `Qwen3.forward()`。
+所有 Prefill chunk 继续使用 `Qwen3.forward()`。单请求 Decode 自 2026-11-16 起也走 `forward_decode()`（批大小为 1），
+不再经过 Prefill 路径；`batch_decode=False` 保留逐请求的串行参考路径。此前的 GPU 实测数据均在旧路由下取得，尚未重测。
 这不是变长 Prefill 合批，也没有实现原生 paged-attention kernel 或 CUDA Graph。
 
 ## 执行与张量布局
@@ -67,7 +68,7 @@ head_dim=8、vocab_size=97。数值对照使用 FP32，logits/KV 的容差为 at
   这是 CPU 调用结构验证，不是 CUDA kernel 数量测量或加速倍数。
 - 完整贪心生成、动态接入、混合 Prefill/Decode、token 预算、max_active、运行/等待取消、页面强制复用。
 - 同批次不同 EOS/长度停止，以及中间层执行失败、非有限 logits 后的整批清理和等待请求恢复。
-- 重复 cache owner、不完整层缓存的拒绝；单请求保留旧执行路径。
+- 重复 cache owner、不完整层缓存的拒绝；单请求 Decode 走 `forward_decode()`，`batch_decode=False` 时保留串行路径。
 - 禁止导入历史引擎、vLLM、Transformers、Triton、FlashAttention 时仍能运行合批生成。
 
 运行：

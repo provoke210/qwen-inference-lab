@@ -47,6 +47,7 @@ class PagePool:
         shape = (layers, pages * page_size, kv_heads, head_dim)
         self.keys = torch.empty(shape, dtype=dtype, device=device)
         self.values = torch.empty_like(self.keys)
+        self.paged_workspace = {}
 
     def pages_for(self, tokens):
         return (tokens + self.page_size - 1) // self.page_size
@@ -81,7 +82,13 @@ class PagePool:
         table = torch.tensor(self.tables[request_id], device=self.keys.device, dtype=torch.long)
         return table[positions // self.page_size] * self.page_size + positions % self.page_size
 
-    def write(self, request_id, layer, start, keys, values):
+    def prefill_slots(self, request_id, end):
+        """Physical slots of positions [0, end), built once and shared by all layers."""
+        if not 0 < end <= len(self.tables[request_id]) * self.page_size or end > self.limits[request_id]:
+            raise ValueError('KV pages have not been allocated for this write')
+        return self._slots(request_id, 0, end)
+
+    def write(self, request_id, layer, start, keys, values, slots=None):
         if keys.shape != values.shape or keys.ndim != 3 or tuple(keys.shape[1:]) != tuple(self.keys.shape[2:]):
             raise ValueError('invalid KV tensor shape')
         if start != self.written[request_id][layer]:
@@ -89,15 +96,21 @@ class PagePool:
         end = start + keys.shape[0]
         if keys.shape[0] == 0 or end > len(self.tables[request_id]) * self.page_size or end > self.limits[request_id]:
             raise ValueError('KV pages have not been allocated for this write')
-        slots = self._slots(request_id, start, end)
+        if slots is None:
+            slots = self._slots(request_id, start, end)
+        elif slots.shape != (keys.shape[0],):
+            raise ValueError('prefill slots do not match the KV write')
         self.keys[layer].index_copy_(0, slots, keys)
         self.values[layer].index_copy_(0, slots, values)
         self.written[request_id][layer] = end
 
-    def read(self, request_id, layer, end):
+    def read(self, request_id, layer, end, slots=None):
         if not 0 < end <= self.written[request_id][layer]:
             raise ValueError('cannot read unwritten KV tokens')
-        slots = self._slots(request_id, 0, end)
+        if slots is None:
+            slots = self._slots(request_id, 0, end)
+        elif slots.shape != (end,):
+            raise ValueError('prefill slots do not match the KV read')
         return self.keys[layer].index_select(0, slots), self.values[layer].index_select(0, slots)
 
     def prepare_decode(self, request_ids, starts, *, layout=None):

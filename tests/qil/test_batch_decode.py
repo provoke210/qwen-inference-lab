@@ -252,15 +252,23 @@ def test_decode_rejects_duplicate_owners_and_incomplete_layer_prefix(pair):
     assert pool.written[7] == [1, 0]
 
 
-def test_single_request_uses_original_forward(pair, monkeypatch):
+@pytest.mark.parametrize('batch_decode', [False, True])
+def test_single_request_decode_path(pair, monkeypatch, batch_decode):
+    """A lone decode also uses the shared-metadata path; batch_decode=False keeps the serial one."""
     model, reference = pair
+    original, sizes = model.forward_decode, []
 
-    def unexpected(*args, **kwargs):
-        raise AssertionError('single-request decode should use the original path')
+    def record(token_ids, **kwargs):
+        sizes.append(len(token_ids))
+        return original(token_ids, **kwargs)
 
-    monkeypatch.setattr(model, 'forward_decode', unexpected)
-    result = Engine(model).generate([[1, 3]], max_new_tokens=4, ignore_eos=True)[0]
+    monkeypatch.setattr(model, 'forward_decode', record)
+    engine = Engine(model, batch_decode=batch_decode)
+    result = engine.generate([[1, 3]], max_new_tokens=4, ignore_eos=True)[0]
     assert result['token_ids'] == greedy(reference, [1, 3], 4)
+    # The prompt's final chunk yields the first token; the other three are decodes.
+    assert sizes == ([1, 1, 1] if batch_decode else [])
+    assert engine.idle and len(engine.pool.free) == engine.pool.capacity
 
 
 def test_batched_decode_reuses_pages_without_exposing_previous_owners(pair):

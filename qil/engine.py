@@ -1,6 +1,8 @@
 """Standalone inference loop: planning -> forward -> token event -> release.
 
-Decode requests can share one model forward; prefill chunks execute individually.
+Decode requests share one model forward, including a lone request, so decode
+never takes the per-chunk prefill path; prefill chunks execute individually.
+batch_decode=False keeps the serial reference path for ablation.
 """
 from time import perf_counter
 import torch
@@ -58,7 +60,7 @@ class Engine:
         plan = self.scheduler.plan()
         decode = [work for work in plan if self.batch_decode and
                   work.start >= len(self.scheduler.requests[work.request_id].prompt)]
-        decode_ids = {work.request_id for work in decode} if (len(decode) > 1 or self.pool.decode_attention != 'dense') else set()
+        decode_ids = {work.request_id for work in decode}
         decoded = False
         for work in plan:
             if work.request_id in decode_ids:
