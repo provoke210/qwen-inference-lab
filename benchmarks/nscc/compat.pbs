@@ -1,0 +1,25 @@
+#!/bin/bash -l
+#PBS -N qil-compat
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=00:45:00
+#PBS -j oe
+# Submit with: qsub -P <project> -v QIL_ROOT=<work dir> <this file>
+# Full test suite on the vLLM 0.30.0 environment (torch 2.13 + Transformers 5)
+# with the Transformers-5 config fix; separate tree so the running TP job is untouched.
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+OUT=$R/results-tp
+module load miniforge3/25.3.1
+source $R/venv-vllm/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TRITON_CACHE_DIR=$R/triton/compat
+# Python's sqlite3 (imported by vLLM's engine) needs miniforge's newer libstdc++,
+# but CUDA libraries load the RHEL 8 system copy first; preload the newer one.
+export LD_PRELOAD=/app/apps/miniforge3/25.3.1/lib/libstdc++.so.6
+cd $R/compat
+timeout 900 python -c "import torch, vllm; from vllm import LLM; print('vllm', vllm.__version__, 'cuda', torch.version.cuda, torch.cuda.get_device_name(0))" > $OUT/vllm-import-fixed.log 2>&1
+echo "exit=$?" >> $OUT/vllm-import-fixed.log
+PYTHONPATH=$R/compat python -m pytest -q --disable-warnings --junitxml=$OUT/pytest-fixed.xml > $OUT/pytest-fixed.log 2>&1
+echo "exit=$?" >> $OUT/pytest-fixed.log
+cd $R/compat && PYTHONPATH=$R/compat python -m benchmarks.compare_independent --backend vllm --model $R/models/Qwen3-0.6B \
+  --workload $R/workload.json --dtype float32 --runs 5 --output $OUT/vllm-fp32-eager.json > $OUT/vllm-fp32-eager.log 2>&1
+echo "exit=$?" >> $OUT/vllm-fp32-eager.log

@@ -1,5 +1,7 @@
 # Qwen Inference Lab（中文说明）
 
+> **注意（2026-11-21）**：本文记录的是 2026 年 9 月在 RTX 4080 SUPER 上的阶段性结果，尚未同步之后的改动与 A100 结果（单请求 Decode 路由、张量并行、vLLM 0.30.0 对照等）。当前功能、结果与限制以英文 [README](../README.md) 为准。
+
 `qil` 是从请求状态、分页 KV 缓存、调度循环到模型前向重新实现的单设备推理引擎。
 当前支持 Qwen3 稠密文本模型，默认使用 PyTorch 张量算子与 SDPA；不依赖 nano-vLLM、
 nano-vllm-lite 或 vLLM。可选的直接分页 Decode Attention 使用独立编写的 Triton 内核；

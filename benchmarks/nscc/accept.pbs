@@ -1,0 +1,41 @@
+#!/bin/bash -l
+#PBS -N qil-accept
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=00:40:00
+#PBS -j oe
+# Submit with: qsub -P <project> -v QIL_ROOT=<work dir> <this file>
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+OUT=$R/results; MODEL=$R/models/Qwen3-0.6B; WL=$R/workload.json
+module load miniforge3/25.3.1
+source $R/venv/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+STATUS=$OUT/status.tsv
+rm -f $OUT/accept-*
+grep -v '^accept-' $STATUS > $STATUS.tmp; mv $STATUS.tmp $STATUS
+echo "reference for acceptance: transformers 4.51.3 (as in the 2026-09-20 rounds)" >> $OUT/environment.txt
+run() {
+  local step=$1 tree=$2; shift 2
+  echo "RUNNING $step $tree" > $OUT/current.txt
+  local t0=$SECONDS
+  ( cd $R/$tree && PYTHONPATH=$R/tf451:$R/$tree "$@" ) > $OUT/$step.$tree.log 2>&1
+  local code=$?
+  printf '%s\t%s\t%s\t%s\n' $step $tree $code $((SECONDS-t0)) >> $STATUS
+}
+for tree in base new; do
+  export TRITON_CACHE_DIR=$R/triton/$tree
+  for group in "short 17 41 83 128" "long 63 127 255 511"; do
+    set -- $group; label=$1; shift
+    for attn in dense paged; do
+      for backend in efficient auto; do
+        run accept-fp32-$attn-$backend-$label $tree python -m benchmarks.validate_batched --model $MODEL --workload $WL --dtype float32 \
+          --reference-attention sdpa --sdpa-backend $backend --reference-cache --decode-attention $attn \
+          --prompt-lengths "$@" --output $OUT/accept-fp32-$attn-$backend-$label.$tree.json
+      done
+    done
+    run accept-bf16-dense-math-$label $tree python -m benchmarks.validate_batched --model $MODEL --workload $WL --dtype bfloat16 \
+      --reference-attention sdpa --sdpa-backend math --reference-cache --decode-attention dense \
+      --prompt-lengths "$@" --output $OUT/accept-bf16-dense-math-$label.$tree.json
+  done
+done
+echo "DONE" > $OUT/current.txt

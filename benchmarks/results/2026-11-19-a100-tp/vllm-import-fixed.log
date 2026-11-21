@@ -1,0 +1,2 @@
+vllm 0.30.0 cuda 12.9 NVIDIA A100-SXM4-40GB
+exit=0

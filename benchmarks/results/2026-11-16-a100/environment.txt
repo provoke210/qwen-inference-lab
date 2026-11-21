@@ -1,0 +1,4 @@
+name, memory.total [MiB], driver_version
+NVIDIA A100-SXM4-40GB, 40960 MiB, 570.124.06
+torch 2.8.0+cu128 triton 3.4.0 transformers 4.55.2
+reference for acceptance: transformers 4.51.3 (as in the 2026-09-20 rounds)
