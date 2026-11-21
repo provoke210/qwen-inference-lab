@@ -3,6 +3,8 @@
 Decode requests share one model forward, including a lone request, so decode
 never takes the per-chunk prefill path; prefill chunks execute individually.
 batch_decode=False keeps the serial reference path for ablation.
+cuda_graph=True replays decode steps from CUDA Graphs (qil.graphs; paged
+attention on CUDA only).
 """
 from time import perf_counter
 import torch
@@ -14,11 +16,15 @@ from .scheduler import Request, Scheduler
 class Engine:
     def __init__(self, model, *, num_pages=256, page_size=16, token_budget=128,
                  prefill_chunk=64, max_active=4, clock=perf_counter, batch_decode=True,
-                 selective_logits=True, decode_attention='dense'):
+                 selective_logits=True, decode_attention='dense', cuda_graph=False):
         if type(batch_decode) is not bool:
             raise ValueError('batch_decode must be a boolean')
         if type(selective_logits) is not bool:
             raise ValueError('selective_logits must be a boolean')
+        if type(cuda_graph) is not bool:
+            raise ValueError('cuda_graph must be a boolean')
+        if cuda_graph and not batch_decode:
+            raise ValueError('cuda_graph requires batch_decode')
         self.model = model.eval()
         self.batch_decode = batch_decode
         self.selective_logits = selective_logits
@@ -31,6 +37,10 @@ class Engine:
                              dtype=weight.dtype, device=weight.device, decode_attention=decode_attention)
         self.scheduler = Scheduler(self.pool, token_budget=token_budget,
                                    prefill_chunk=prefill_chunk, max_active=max_active)
+        self.graphs = None
+        if cuda_graph:
+            from .graphs import DecodeGraphs
+            self.graphs = DecodeGraphs(model, self.pool, max_batch=max_active)
 
     def submit(self, prompt, *, max_new_tokens=64, ignore_eos=False):
         prompt = list(prompt)
@@ -71,9 +81,14 @@ class Engine:
                 group = [work]
             try:
                 if work.request_id in decode_ids:
-                    logits = self.model.forward_decode(
-                        [item.tokens[0] for item in group], starts=[item.start for item in group],
-                        pool=self.pool, request_ids=[item.request_id for item in group])
+                    tokens = [item.tokens[0] for item in group]
+                    starts = [item.start for item in group]
+                    request_ids = [item.request_id for item in group]
+                    if self.graphs is not None:
+                        logits = self.graphs.decode(tokens, starts=starts, request_ids=request_ids)
+                    else:
+                        logits = self.model.forward_decode(tokens, starts=starts, pool=self.pool,
+                                                           request_ids=request_ids)
                     emitted = self._sample(logits)
                 else:
                     request = self.scheduler.requests[work.request_id]

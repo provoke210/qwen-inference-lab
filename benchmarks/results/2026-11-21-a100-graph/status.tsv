@@ -1,0 +1,11 @@
+step	exit	seconds
+pytest	0	153
+eager-Qwen3-0.6B-float32	0	30
+graph-Qwen3-0.6B-float32	0	12
+eager-Qwen3-4B-float32	0	139
+graph-Qwen3-4B-float32	0	39
+eager-Qwen3-0.6B-bfloat16	0	19
+graph-Qwen3-0.6B-bfloat16	0	12
+profile-Qwen3-0.6B-fp32	0	17
+profile-Qwen3-4B-fp32	0	36
+profile-Qwen3-0.6B-bf16	0	11

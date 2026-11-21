@@ -113,7 +113,7 @@ class DecoderBlock(nn.Module):
     def forward_decode(self, x, *, rotation, pool, batch, layer):
         """A single batched projection/attention/MLP for independent requests."""
         cfg = self.cfg
-        size = len(batch.request_ids)
+        size = x.shape[0]  # static (graph) batches carry padding rows
         normalized = self.before_attention(x)
         q = self.query_norm(self.query(normalized).reshape(size, self.heads, cfg.head_dim))
         k = self.key_norm(self.key(normalized).reshape(size, self.kv_heads, cfg.head_dim))
@@ -150,6 +150,7 @@ class Qwen3(nn.Module):
         # module buffers so model.to(bfloat16) cannot round the frequencies.
         exponent = torch.arange(0, config.head_dim, 2, device='cpu', dtype=torch.float32) / config.head_dim
         self._rope_frequencies_cpu = 1.0 / (config.rope_theta ** exponent)
+        self._rope_frequencies = {}  # device -> the same values; copied once, not every forward
 
     @staticmethod
     def _all_reduce(partial):
@@ -192,7 +193,10 @@ class Qwen3(nn.Module):
         return tensor  # norms are replicated
 
     def rotary_angles(self, positions):
-        frequencies = self._rope_frequencies_cpu.to(device=positions.device)
+        frequencies = self._rope_frequencies.get(positions.device)
+        if frequencies is None:
+            frequencies = self._rope_frequencies_cpu.to(device=positions.device)
+            self._rope_frequencies[positions.device] = frequencies
         return positions.float()[:, None] * frequencies[None, :]
 
     @torch.inference_mode()
@@ -232,6 +236,12 @@ class Qwen3(nn.Module):
         Each row consumes exactly one token. Prefill remains on forward(); the
         page pool owns the independent histories and pads only the attention KV.
         """
+        token_ids, starts, request_ids = self.check_decode(token_ids, starts, request_ids)
+        batch = pool.prepare_decode(request_ids, starts)
+        tokens = torch.tensor(token_ids, dtype=torch.long, device=self.embedding.weight.device)
+        return self.decode_logits(tokens, batch, pool)
+
+    def check_decode(self, token_ids, starts, request_ids):
         token_ids, starts, request_ids = list(token_ids), tuple(starts), tuple(request_ids)
         if not token_ids or len(token_ids) != len(starts) or len(starts) != len(request_ids):
             raise ValueError('decode token, position and request counts must match')
@@ -239,9 +249,14 @@ class Qwen3(nn.Module):
             raise ValueError('decode requires valid integer token IDs')
         if any(type(s) is not int or not 0 <= s < self.config.max_position_embeddings for s in starts):
             raise ValueError('invalid decode model context')
-        batch = pool.prepare_decode(request_ids, starts)
-        device = self.embedding.weight.device
-        tokens = torch.tensor(token_ids, dtype=torch.long, device=device)
+        return token_ids, starts, request_ids
+
+    @torch.inference_mode()
+    def decode_logits(self, tokens, batch, pool):
+        """Device-only part of a decode step: no host reads and no host-to-device copies.
+
+        With a static batch over fixed buffers this is what qil.graphs captures.
+        """
         hidden = self.embedding(tokens)
         rotation = DecoderBlock.rotation_terms(self.rotary_angles(batch.positions), hidden.dtype)
         for index, block in enumerate(self.blocks):
