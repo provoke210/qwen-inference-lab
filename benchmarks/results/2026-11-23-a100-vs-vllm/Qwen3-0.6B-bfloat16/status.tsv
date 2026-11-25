@@ -1,0 +1,5 @@
+step	exit	seconds
+Qwen3-0.6B-bfloat16-qil-eager	0	112
+Qwen3-0.6B-bfloat16-qil-graph	0	26
+Qwen3-0.6B-bfloat16-vllm-eager	0	243
+Qwen3-0.6B-bfloat16-vllm-default	0	245

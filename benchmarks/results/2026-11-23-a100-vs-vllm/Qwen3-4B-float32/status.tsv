@@ -1,0 +1,5 @@
+step	exit	seconds
+Qwen3-4B-float32-qil-eager	0	242
+Qwen3-4B-float32-qil-graph	0	79
+Qwen3-4B-float32-vllm-eager	0	263
+Qwen3-4B-float32-vllm-default	0	275

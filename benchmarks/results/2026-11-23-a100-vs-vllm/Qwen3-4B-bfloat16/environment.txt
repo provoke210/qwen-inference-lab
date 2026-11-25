@@ -1,0 +1,3 @@
+index, name, memory.total [MiB], driver_version
+0, NVIDIA A100-SXM4-40GB, 40960 MiB, 570.124.06
+torch 2.13.0+cu129 vllm 0.30.0
