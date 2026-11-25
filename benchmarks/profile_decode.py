@@ -84,9 +84,8 @@ def annotate(engine, level='full'):
         for block in model.blocks:
             patch(block, 'apply_rotation', 'rotate')
             for name, label in [('before_attention', 'norm'), ('before_mlp', 'norm'), ('query_norm', 'norm'),
-                                ('key_norm', 'norm'), ('query', 'qkv'), ('key', 'qkv'), ('value', 'qkv'),
-                                ('attention_output', 'o_proj'), ('gate', 'mlp_proj'),
-                                ('expand', 'mlp_proj'), ('contract', 'mlp_proj')]:
+                                ('key_norm', 'norm'), ('qkv', 'qkv'), ('attention_output', 'o_proj'),
+                                ('gate_up', 'mlp_proj'), ('contract', 'mlp_proj')]:
                 patch(getattr(block, name), 'forward', label)
 
     def restore():

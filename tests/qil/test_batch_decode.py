@@ -98,7 +98,7 @@ def test_four_requests_share_projection_and_attention_calls(pair, monkeypatch, b
     ids = [engine.submit(p, max_new_tokens=2, ignore_eos=True) for p in prompts]
     engine.step()  # All four prefills finish; only decode is measured below.
     projection_shapes, attention_shapes = [], []
-    handle = model.blocks[0].query.register_forward_pre_hook(
+    handle = model.blocks[0].qkv.register_forward_pre_hook(
         lambda module, args: projection_shapes.append(tuple(args[0].shape)))
     original = F.scaled_dot_product_attention
 

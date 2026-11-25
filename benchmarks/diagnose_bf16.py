@@ -25,6 +25,17 @@ def difference(a, b):
                 finite=bool(torch.isfinite(a).all() and torch.isfinite(b).all()))
 
 
+def projections(block):
+    """The checkpoint's separate projections, computed from slices of qil's fused weights."""
+    q, k, v = block.qkv_sizes
+    m = block.intermediate
+    def linear(weight, bias, start, end):
+        return lambda x: F.linear(x, weight[start:end], None if bias is None else bias[start:end])
+    w, b, g = block.qkv.weight, block.qkv.bias, block.gate_up.weight
+    return dict(q=linear(w, b, 0, q), k=linear(w, b, q, q + k), v=linear(w, b, q + k, q + k + v),
+                gate=linear(g, None, 0, m), up=linear(g, None, m, 2 * m))
+
+
 def capture(model, tokens, native, kernel):
     values, inputs, handles = {}, {}, []
     current = [0]
@@ -34,13 +45,22 @@ def capture(model, tokens, native, kernel):
             values[name]=value.detach().cpu().reshape(len(tokens),-1)
             inputs[name]=args[0].detach().cpu()
         handles.append(module.register_forward_hook(hook))
+    def add_split(names, module, sizes):
+        def hook(m, args, result):
+            for name, part in zip(names, result.split(sizes, dim=-1)):
+                values[name]=part.detach().cpu().reshape(len(tokens),-1)
+                inputs[name]=args[0].detach().cpu()
+        handles.append(module.register_forward_hook(hook))
     blocks=model.blocks if native else model.model.layers
     for i,b in enumerate(blocks):
         def before(m,args,i=i):current[0]=i
         handles.append(b.register_forward_pre_hook(before))
-        mapping = dict(norm1=b.before_attention,q=b.query,k=b.key,v=b.value,qn=b.query_norm,
+        if native:  # q/k/v and gate/up come out of one fused projection each
+            add_split([f'{i}.q',f'{i}.k',f'{i}.v'],b.qkv,b.qkv_sizes)
+            add_split([f'{i}.gate',f'{i}.up'],b.gate_up,(b.intermediate,b.intermediate))
+        mapping = dict(norm1=b.before_attention,qn=b.query_norm,
                        kn=b.key_norm,attn_out=b.attention_output,norm2=b.before_mlp,
-                       gate=b.gate,up=b.expand,mlp=b.contract,block=b) if native else dict(
+                       mlp=b.contract,block=b) if native else dict(
                        norm1=b.input_layernorm,q=b.self_attn.q_proj,k=b.self_attn.k_proj,
                        v=b.self_attn.v_proj,qn=b.self_attn.q_norm,kn=b.self_attn.k_norm,
                        attn_out=b.self_attn.o_proj,norm2=b.post_attention_layernorm,
@@ -48,16 +68,17 @@ def capture(model, tokens, native, kernel):
         for name,module in mapping.items():add(f'{i}.{name}',module)
     add('final_norm',model.final_norm if native else model.model.norm)
     add('head',model.head if native else model.lm_head)
-    rotate=DecoderBlock.rotate
+    rotate_pair=DecoderBlock.rotate_query_key
     hf_rotate=hf.apply_rotary_pos_emb
-    def native_rope(x, angles):
-        result=rotate(x,angles)
-        name='rq' if f'{current[0]}.rq' not in values else 'rk'
-        values[f'{current[0]}.{name}']=result.cpu().reshape(len(tokens),-1)
-        if current[0]==0:
-            values['cos']=angles.cos().to(x.dtype).cpu()
-            values['sin']=angles.sin().to(x.dtype).cpu()
-        return result
+    def native_rope(self, q, k, rotation):
+        rq,rk=rotate_pair(self,q,k,rotation)
+        values[f'{current[0]}.rq']=rq.cpu().reshape(len(tokens),-1)
+        values[f'{current[0]}.rk']=rk.cpu().reshape(len(tokens),-1)
+        if current[0]==0:  # rotation holds (cos, cos) and (-sin, sin) over the two halves
+            half=rotation[0].shape[-1]//2
+            values['cos']=rotation[0][:,0,:half].cpu()
+            values['sin']=rotation[1][:,0,half:].cpu()
+        return rq,rk
     def reference_rope(q,k,cos,sin,*args,**kwargs):
         qr,kr=hf_rotate(q,k,cos,sin,*args,**kwargs)
         values[f'{current[0]}.rq']=qr[0].transpose(0,1).cpu().reshape(len(tokens),-1)
@@ -67,7 +88,7 @@ def capture(model, tokens, native, kernel):
         return qr,kr
     ctx = sdpa_kernel(SDPBackend.MATH) if kernel=='math' else nullcontext()
     try:
-        with torch.inference_mode(),ctx,patch.object(DecoderBlock,'rotate',staticmethod(native_rope)),patch.object(hf,'apply_rotary_pos_emb',reference_rope):
+        with torch.inference_mode(),ctx,patch.object(DecoderBlock,'rotate_query_key',native_rope),patch.object(hf,'apply_rotary_pos_emb',reference_rope):
             if native:
                 owner=Engine(model,num_pages=256,page_size=16)
                 owner.pool.admit(0,len(tokens));owner.pool.ensure(0,len(tokens))
@@ -125,16 +146,18 @@ def main():
     # This separates a local operation difference from differences propagated from earlier layers.
     with torch.inference_mode():
         for i,b in enumerate(model.blocks):
-            for name,module in dict(norm1=b.before_attention,q=b.query,k=b.key,v=b.value,qn=b.query_norm,
+            split=projections(b)
+            for name,module in dict(norm1=b.before_attention,q=split['q'],k=split['k'],v=split['v'],qn=b.query_norm,
                                     kn=b.key_norm,attn_out=b.attention_output,norm2=b.before_mlp,
-                                    gate=b.gate,up=b.expand,mlp=b.contract).items():
+                                    gate=split['gate'],up=split['up'],mlp=b.contract).items():
                 key=f'{i}.{name}'
                 x=all_inputs['hf_math'][key].to(args.device)
                 actual=module(x).cpu().reshape(len(tokens),-1)
                 report['isolated'][key]=difference(actual,all_values['hf_math'][key])
         for i,b in enumerate(model.blocks):
             x=all_values['hf_math'][f'{i}.norm2'].to(args.device)
-            actual=b.contract(F.silu(b.gate(x))*b.expand(x)).cpu()
+            split=projections(b)
+            actual=b.contract(F.silu(split['gate'](x))*split['up'](x)).cpu()
             report['isolated'][f'{i}.mlp_full']=difference(actual,all_values['hf_math'][f'{i}.mlp'])
             cfg=model.config
             def layout(key,heads):

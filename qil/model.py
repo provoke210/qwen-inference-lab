@@ -47,14 +47,17 @@ class DecoderBlock(nn.Module):
         self.reduce = reduce
         self.before_attention = ScaleNorm(cfg.hidden_size, cfg.rms_norm_eps)
         self.before_mlp = ScaleNorm(cfg.hidden_size, cfg.rms_norm_eps)
-        self.query = nn.Linear(cfg.hidden_size, self.heads * cfg.head_dim, bias=cfg.attention_bias)
-        self.key = nn.Linear(cfg.hidden_size, self.kv_heads * cfg.head_dim, bias=cfg.attention_bias)
-        self.value = nn.Linear(cfg.hidden_size, self.kv_heads * cfg.head_dim, bias=cfg.attention_bias)
+        # q/k/v and gate/up each run as one matmul. The checkpoint's separate
+        # projections load into row ranges of the fused weights (see
+        # checkpoint_parameters); under tensor parallelism each rank fuses its
+        # own shards, so the layout is [q | k | v] of the local heads.
+        self.qkv_sizes = (self.heads * cfg.head_dim, self.kv_heads * cfg.head_dim, self.kv_heads * cfg.head_dim)
+        self.intermediate = intermediate
+        self.qkv = nn.Linear(cfg.hidden_size, sum(self.qkv_sizes), bias=cfg.attention_bias)
         self.attention_output = nn.Linear(self.heads * cfg.head_dim, cfg.hidden_size, bias=cfg.attention_bias)
         self.query_norm = ScaleNorm(cfg.head_dim, cfg.rms_norm_eps)
         self.key_norm = ScaleNorm(cfg.head_dim, cfg.rms_norm_eps)
-        self.gate = nn.Linear(cfg.hidden_size, intermediate, bias=False)
-        self.expand = nn.Linear(cfg.hidden_size, intermediate, bias=False)
+        self.gate_up = nn.Linear(cfg.hidden_size, 2 * intermediate, bias=False)
         self.contract = nn.Linear(intermediate, cfg.hidden_size, bias=False)
 
     @staticmethod
@@ -78,6 +81,35 @@ class DecoderBlock(nn.Module):
         cosine, signed_sine = rotation
         return x * cosine + x.roll(x.shape[-1] // 2, dims=-1) * signed_sine
 
+    def project(self, normalized):
+        """Normalized q and k heads and the v heads from one fused projection."""
+        cfg, rows = self.cfg, normalized.shape[0]
+        q, k, v = self.qkv(normalized).split(self.qkv_sizes, dim=-1)
+        return (self.query_norm(q.reshape(rows, self.heads, cfg.head_dim)),
+                self.key_norm(k.reshape(rows, self.kv_heads, cfg.head_dim)),
+                v.reshape(rows, self.kv_heads, cfg.head_dim))
+
+    def mlp(self, normalized):
+        gate, up = self.gate_up(normalized).split(self.intermediate, dim=-1)
+        return self.contract(F.silu(gate) * up)
+
+    def checkpoint_slices(self, prefix):
+        """Checkpoint tensor name -> the runtime tensor (a row range of a fused weight) it loads into."""
+        result = {}
+        start = 0
+        for name, size in zip(('q_proj', 'k_proj', 'v_proj'), self.qkv_sizes):
+            result[prefix + f'self_attn.{name}.weight'] = self.qkv.weight.detach()[start:start + size]
+            if self.qkv.bias is not None:
+                result[prefix + f'self_attn.{name}.bias'] = self.qkv.bias.detach()[start:start + size]
+            start += size
+        result[prefix + 'self_attn.o_proj.weight'] = self.attention_output.weight
+        if self.attention_output.bias is not None:
+            result[prefix + 'self_attn.o_proj.bias'] = self.attention_output.bias
+        result[prefix + 'mlp.gate_proj.weight'] = self.gate_up.weight.detach()[:self.intermediate]
+        result[prefix + 'mlp.up_proj.weight'] = self.gate_up.weight.detach()[self.intermediate:]
+        result[prefix + 'mlp.down_proj.weight'] = self.contract.weight
+        return result
+
     def rotate_query_key(self, q, k, rotation):
         """One rotation over the query and key heads together; returns views of q and k."""
         both = self.apply_rotation(torch.cat((q, k), dim=1), rotation)
@@ -92,10 +124,7 @@ class DecoderBlock(nn.Module):
         cfg = self.cfg
         length = x.shape[0]
         end = start + length
-        normalized = self.before_attention(x)
-        q = self.query_norm(self.query(normalized).reshape(length, self.heads, cfg.head_dim))
-        k = self.key_norm(self.key(normalized).reshape(length, self.kv_heads, cfg.head_dim))
-        v = self.value(normalized).reshape(length, self.kv_heads, cfg.head_dim)
+        q, k, v = self.project(self.before_attention(x))
         q, k = self.rotate_query_key(q, k, rotation)
         pool.write(request_id, layer, start, k, v, slots=slots[start:])
         all_k, all_v = pool.read(request_id, layer, end, slots=slots)
@@ -107,23 +136,17 @@ class DecoderBlock(nn.Module):
             attn_mask=mask, dropout_p=0., scale=cfg.head_dim ** -.5,
         )[0].transpose(0, 1).reshape(length, -1)
         x = x + self.reduce(self.attention_output(attended))
-        normalized = self.before_mlp(x)
-        return x + self.reduce(self.contract(F.silu(self.gate(normalized)) * self.expand(normalized)))
+        return x + self.reduce(self.mlp(self.before_mlp(x)))
 
     def forward_decode(self, x, *, rotation, pool, batch, layer):
         """A single batched projection/attention/MLP for independent requests."""
-        cfg = self.cfg
         size = x.shape[0]  # static (graph) batches carry padding rows
-        normalized = self.before_attention(x)
-        q = self.query_norm(self.query(normalized).reshape(size, self.heads, cfg.head_dim))
-        k = self.key_norm(self.key(normalized).reshape(size, self.kv_heads, cfg.head_dim))
-        v = self.value(normalized).reshape(size, self.kv_heads, cfg.head_dim)
+        q, k, v = self.project(self.before_attention(x))
         q, k = self.rotate_query_key(q, k, rotation)
         pool.write_decode(batch, layer, k, v)
         attended = decode_attention(q, pool, batch, layer).reshape(size, -1)
         x = x + self.reduce(self.attention_output(attended))
-        normalized = self.before_mlp(x)
-        return x + self.reduce(self.contract(F.silu(self.gate(normalized)) * self.expand(normalized)))
+        return x + self.reduce(self.mlp(self.before_mlp(x)))
 
 
 class Qwen3(nn.Module):
@@ -271,15 +294,9 @@ class Qwen3(nn.Module):
             prefix = f'model.layers.{i}.'
             result[prefix + 'input_layernorm.weight'] = block.before_attention.scale
             result[prefix + 'post_attention_layernorm.weight'] = block.before_mlp.scale
-            for name, module in [('q_proj', block.query), ('k_proj', block.key),
-                                 ('v_proj', block.value), ('o_proj', block.attention_output)]:
-                result[prefix + f'self_attn.{name}.weight'] = module.weight
-                if module.bias is not None:
-                    result[prefix + f'self_attn.{name}.bias'] = module.bias
             result[prefix + 'self_attn.q_norm.weight'] = block.query_norm.scale
             result[prefix + 'self_attn.k_norm.weight'] = block.key_norm.scale
-            for name, module in [('gate_proj', block.gate), ('up_proj', block.expand), ('down_proj', block.contract)]:
-                result[prefix + f'mlp.{name}.weight'] = module.weight
+            result.update(block.checkpoint_slices(prefix))
         return result
 
     @classmethod
