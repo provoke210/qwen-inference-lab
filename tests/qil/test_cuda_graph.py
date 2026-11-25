@@ -22,6 +22,10 @@ def test_cuda_graph_option_is_validated(pair):
         Engine(native, cuda_graph=True, batch_decode=False)
     with pytest.raises(ValueError, match='CUDA device'):
         Engine(native, cuda_graph=True)
+    with pytest.raises(ValueError, match='boolean'):
+        Engine(native, compile_decode=1)
+    with pytest.raises(ValueError, match='requires cuda_graph'):
+        Engine(native, compile_decode=True)
 
 
 def test_reserved_page_is_never_allocated():
@@ -103,3 +107,18 @@ def test_long_context_falls_back_to_eager(pair):
     assert engine.graphs.max_context == 32
     # Positions 29..40 cross the 32-token graph limit midway and continue eagerly.
     assert run(engine, [list(range(1, 30))], [12]) == expected
+
+
+@cuda
+def test_compiled_graph_matches_eager_paged_decode(pair):
+    native, _ = pair
+    model = native.cuda()
+    torch.manual_seed(4)
+    prompts = [torch.randint(0, 97, (n,)).tolist() for n in (5, 17, 1, 33, 9)]
+    limits = [23, 7, 40, 12, 30]
+    settings = dict(num_pages=64, page_size=4, token_budget=24, prefill_chunk=8, max_active=4,
+                    decode_attention='paged')
+    expected = run(Engine(model, **settings), prompts, limits)
+    engine = Engine(model, cuda_graph=True, compile_decode=True, **settings)
+    assert engine.graphs.compiled
+    assert run(engine, prompts, limits) == expected

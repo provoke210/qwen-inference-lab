@@ -280,6 +280,12 @@ class Qwen3(nn.Module):
 
         With a static batch over fixed buffers this is what qil.graphs captures.
         """
+        return self.decode_compute(tokens, batch, pool)
+
+    def decode_compute(self, tokens, batch, pool):
+        """decode_logits without the inference_mode decorator; call it under no_grad or
+        inference_mode. torch.compile fails on the decorated function, so qil.graphs
+        compiles this one."""
         hidden = self.embedding(tokens)
         rotation = DecoderBlock.rotation_terms(self.rotary_angles(batch.positions), hidden.dtype)
         for index, block in enumerate(self.blocks):

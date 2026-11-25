@@ -4,7 +4,8 @@ Decode requests share one model forward, including a lone request, so decode
 never takes the per-chunk prefill path; prefill chunks execute individually.
 batch_decode=False keeps the serial reference path for ablation.
 cuda_graph=True replays decode steps from CUDA Graphs (qil.graphs; paged
-attention on CUDA only).
+attention on CUDA only); compile_decode=True also compiles them with
+torch.compile before capture.
 """
 from time import perf_counter
 import torch
@@ -16,7 +17,8 @@ from .scheduler import Request, Scheduler
 class Engine:
     def __init__(self, model, *, num_pages=256, page_size=16, token_budget=128,
                  prefill_chunk=64, max_active=4, clock=perf_counter, batch_decode=True,
-                 selective_logits=True, decode_attention='dense', cuda_graph=False):
+                 selective_logits=True, decode_attention='dense', cuda_graph=False,
+                 compile_decode=False):
         if type(batch_decode) is not bool:
             raise ValueError('batch_decode must be a boolean')
         if type(selective_logits) is not bool:
@@ -25,6 +27,10 @@ class Engine:
             raise ValueError('cuda_graph must be a boolean')
         if cuda_graph and not batch_decode:
             raise ValueError('cuda_graph requires batch_decode')
+        if type(compile_decode) is not bool:
+            raise ValueError('compile_decode must be a boolean')
+        if compile_decode and not cuda_graph:
+            raise ValueError('compile_decode requires cuda_graph')
         self.model = model.eval()
         self.batch_decode = batch_decode
         self.selective_logits = selective_logits
@@ -40,7 +46,7 @@ class Engine:
         self.graphs = None
         if cuda_graph:
             from .graphs import DecodeGraphs
-            self.graphs = DecodeGraphs(model, self.pool, max_batch=max_active)
+            self.graphs = DecodeGraphs(model, self.pool, max_batch=max_active, compile=compile_decode)
 
     def submit(self, prompt, *, max_new_tokens=64, ignore_eos=False):
         prompt = list(prompt)

@@ -187,7 +187,7 @@ def tiny_model():
 
 
 def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, device, trace=None,
-             cuda_graph=False):
+             cuda_graph=False, compile_decode=False):
     if annotated(model):
         raise RuntimeError(f'profiler wrappers left on the model: {annotated(model)[:3]}')
     sync = torch.cuda.synchronize if device == 'cuda' else (lambda: None)
@@ -197,7 +197,8 @@ def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, de
     total = warmup + timed + 2 * (profiled + 1) + 2  # two profiles, each after one warm step
     engine = Engine(model, num_pages=max(256, batch * ((prompt_len + total) // 16 + 2)), page_size=16,
                     token_budget=max(512, batch * prompt_len), prefill_chunk=max(128, prompt_len),
-                    max_active=batch, decode_attention=attention, cuda_graph=cuda_graph)
+                    max_active=batch, decode_attention=attention, cuda_graph=cuda_graph,
+                    compile_decode=compile_decode)
     ids = [engine.submit(p, max_new_tokens=total, ignore_eos=True) for p in prompts]
     requests = engine.scheduler.requests
 
@@ -249,6 +250,7 @@ def run_case(model, *, batch, prompt_len, attention, warmup, timed, profiled, de
     finally:
         engine.close()
     return dict(batch=batch, prompt_len=prompt_len, attention=attention, cuda_graph=cuda_graph,
+                compile_decode=compile_decode,
                 context_at_end=context,
                 step_ms_median=statistics.median(samples), step_samples_ms=samples,
                 profile_phases=profiles['phases'], profile_full=profiles['full'])
@@ -270,6 +272,7 @@ def main():
     parser.add_argument('--timed', type=int, default=32)
     parser.add_argument('--profiled', type=int, default=8)
     parser.add_argument('--cuda-graph', action='store_true', help='replay decode steps from CUDA Graphs (paged only)')
+    parser.add_argument('--compile-decode', action='store_true', help='torch.compile before graph capture')
     parser.add_argument('--trace', type=Path, help='write a gzipped Chrome trace of the first case here')
     args = parser.parse_args()
     if args.tiny:
@@ -287,7 +290,8 @@ def main():
             for batch in args.batch:
                 case = run_case(model, batch=batch, prompt_len=prompt_len, attention=attention,
                                 warmup=args.warmup, timed=args.timed, profiled=args.profiled,
-                                device=args.device, trace=trace, cuda_graph=args.cuda_graph)
+                                device=args.device, trace=trace, cuda_graph=args.cuda_graph,
+                                compile_decode=args.compile_decode)
                 trace = None
                 report['cases'].append(case)
                 light, full = case['profile_phases'], case['profile_full']

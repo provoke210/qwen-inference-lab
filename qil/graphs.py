@@ -18,6 +18,12 @@ A graph fixes every shape and address, so:
 
 Validation and KV bookkeeping that eager decode does per layer happen once per
 step here, on the host. Prefill stays eager.
+
+compile=True runs the decode forward through torch.compile (Inductor) before
+capturing it, which fuses the elementwise operations between the matmuls and
+attention into fewer kernels. Each batch size compiles once, at start-up.
+Fused arithmetic can round differently from eager, so logits may differ in
+the last bits.
 """
 import torch
 
@@ -25,7 +31,7 @@ from .cache import DecodeBatch
 
 
 class DecodeGraphs:
-    def __init__(self, model, pool, *, max_batch, max_context=None):
+    def __init__(self, model, pool, *, max_batch, max_context=None, compile=False):
         device = pool.keys.device
         if device.type != 'cuda':
             raise ValueError('CUDA Graphs need a CUDA device')
@@ -35,7 +41,20 @@ class DecodeGraphs:
             raise ValueError('CUDA Graphs do not support tensor parallelism yet')
         if type(max_batch) is not int or max_batch < 1:
             raise ValueError('max_batch must be a positive integer')
+        if type(compile) is not bool:
+            raise ValueError('compile must be a boolean')
         self.model, self.pool = model, pool
+        self.compiled = compile
+        forward = model.decode_compute
+        if compile:
+            # Traced, the KV write (an in-place index_copy_ into a slice of the
+            # whole-cache tensor) is functionalized into a copy of the entire
+            # cache, every layer. Kept eager it stays two small kernels and
+            # splits the compiled forward at each layer instead. Patched on this
+            # pool only, so importing qil never loads the compiler.
+            pool.write_decode = torch.compiler.disable(pool.write_decode)
+            # Shapes are fixed per graph, so compile each batch size statically.
+            forward = torch.compile(forward, dynamic=False)
         self.sink = pool.reserve_page()
         limit = min(pool.capacity * pool.page_size, model.config.max_position_embeddings)
         if max_context is None:
@@ -65,13 +84,13 @@ class DecodeGraphs:
             tokens, batch = self._views(size)
             stream = torch.cuda.Stream(device)
             stream.wait_stream(torch.cuda.current_stream(device))
-            with torch.cuda.stream(stream):
-                for _ in range(2):  # compile Triton kernels and settle allocations outside the capture
-                    model.decode_logits(tokens, batch, pool)
+            with torch.cuda.stream(stream), torch.inference_mode():
+                for _ in range(2):  # compile kernels and settle allocations outside the capture
+                    forward(tokens, batch, pool)
             torch.cuda.current_stream(device).wait_stream(stream)
             graph = torch.cuda.CUDAGraph()
-            with torch.cuda.graph(graph, pool=memory):
-                self._outputs[size] = model.decode_logits(tokens, batch, pool)
+            with torch.cuda.graph(graph, pool=memory), torch.inference_mode():
+                self._outputs[size] = forward(tokens, batch, pool)
             self._graphs[size] = graph
         torch.cuda.synchronize(device)
 
