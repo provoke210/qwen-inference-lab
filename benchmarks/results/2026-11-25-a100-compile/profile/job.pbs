@@ -1,0 +1,21 @@
+#!/bin/bash -l
+#PBS -N qil-prof-compile
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=00:30:00
+#PBS -j oe
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+OUT=$R/results-profile-compile
+module load miniforge3/25.3.1
+export LD_PRELOAD=/app/apps/miniforge3/25.3.1/lib/libstdc++.so.6
+source $R/venv-vllm/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TRITON_CACHE_DIR=$R/triton/vllm-env
+rm -rf $OUT; mkdir -p $OUT
+cd $R/compile
+for mode in graph compiled; do
+  flag=""; [ $mode = compiled ] && flag="--compile-decode"
+  PYTHONPATH=$R/compile python -m benchmarks.profile_decode --model $R/models/Qwen3-0.6B --dtype float32 \
+    --batch 1 --prompt-len 128 --decode-attention paged --cuda-graph $flag \
+    --output $OUT/$mode.json --trace $OUT/trace-$mode.json.gz > $OUT/$mode.log 2>&1
+  echo "$mode exit=$?" >> $OUT/status.txt
+done

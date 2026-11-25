@@ -1,0 +1,5 @@
+USDT:2026-11-25 20:42:54 2440758:2440758 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-25 20:42:54 2440758:2440758 SyncActivityProfilerHandler.cpp:59] profiler_stop
+USDT:2026-11-25 20:42:55 2440758:2440758 SyncActivityProfilerHandler.cpp:52] profiler_start
+USDT:2026-11-25 20:42:55 2440758:2440758 SyncActivityProfilerHandler.cpp:59] profiler_stop
+paged batch=1 prompt=128: step 4.53 ms, profiled 16.01/5.62 ms (phases/full), GPU busy 0.05 ms, 11 kernels/step

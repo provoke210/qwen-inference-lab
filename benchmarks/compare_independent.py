@@ -65,6 +65,8 @@ def main():
     parser.add_argument('--decode-attention', choices=['dense', 'grouped', 'paged'], default='dense')
     parser.add_argument('--cuda-graph', action='store_true',
                         help='qil: replay decode steps from CUDA Graphs (needs --decode-attention paged)')
+    parser.add_argument('--compile-decode', action='store_true',
+                        help='qil: torch.compile the decode forward before graph capture (needs --cuda-graph)')
     parser.add_argument('--vllm-mode', choices=['eager', 'default'], default='eager',
                         help='vLLM: enforce_eager=True, or its default (torch.compile + CUDA Graphs)')
     parser.add_argument('--max-new-tokens', type=int, help='override every performance case')
@@ -85,6 +87,8 @@ def main():
         parser.error('--sdpa-backend applies only to the qil backend')
     if args.cuda_graph and (args.backend != 'qil' or args.decode_attention != 'paged'):
         parser.error('--cuda-graph requires qil --batch-decode --decode-attention paged')
+    if args.compile_decode and not args.cuda_graph:
+        parser.error('--compile-decode requires --cuda-graph')
     if args.vllm_mode != 'eager' and args.backend != 'vllm':
         parser.error('--vllm-mode applies only to the vllm backend')
     import torch
@@ -105,16 +109,19 @@ def main():
         model = Qwen3.from_directory(args.model, device='cuda', dtype=getattr(torch, args.dtype))
         eos = model.config.eos_token_id
         assert eos == workload['eos_token_id'] or eos == [workload['eos_token_id']]
+        started = time.perf_counter()
         engine = Engine(model, num_pages=256, page_size=16, token_budget=512,
                         prefill_chunk=128, max_active=4, batch_decode=args.batch_decode,
                         selective_logits=args.selective_logits, decode_attention=args.decode_attention,
-                        cuda_graph=args.cuda_graph)
+                        cuda_graph=args.cuda_graph, compile_decode=args.compile_decode)
+        config['engine_startup_s'] = time.perf_counter() - started
         config['prefill_chunk'] = 128
         config['batch_decode'] = args.batch_decode
         config['selective_logits'] = args.selective_logits
         config['sdpa_backend'] = args.sdpa_backend
         config['decode_attention'] = args.decode_attention
         config['cuda_graph'] = args.cuda_graph
+        config['compile_decode'] = args.compile_decode
         # The graph runner withdraws one page as the padding sink.
         pages_after = 256 - args.cuda_graph
 

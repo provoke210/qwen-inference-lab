@@ -1,0 +1,4 @@
+step	exit	seconds
+Qwen3-0.6B-bfloat16-graph	0	45
+Qwen3-0.6B-bfloat16-graph-compiled	0	47
+Qwen3-0.6B-bfloat16-vllm-default	0	61
