@@ -137,3 +137,22 @@ def test_scale_norm_matches_explicit_formula(dtype):
     x = torch.randn(4, 3, 64, dtype=dtype) * 5
     explicit = (x.float() * (x.float().square().mean(dim=-1, keepdim=True) + 1e-6).rsqrt()).to(dtype) * norm.scale
     torch.testing.assert_close(norm(x), explicit, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize('tp_rank', [None, 0, 1])
+def test_fused_projections_hold_checkpoint_rows(pair, tmp_path, tp_rank):
+    from transformers import Qwen3ForCausalLM
+    _, reference = pair
+    reference.config.attention_bias = True
+    reference = Qwen3ForCausalLM(reference.config).eval()
+    reference.save_pretrained(tmp_path)
+    options = {} if tp_rank is None else dict(tp_rank=tp_rank, tp_size=2)
+    native = Qwen3.from_directory(tmp_path, **options)
+    rank, size = (0, 1) if tp_rank is None else (tp_rank, 2)
+    shard = lambda t: t.chunk(size)[rank]
+    for block, layer in zip(native.blocks, reference.model.layers):
+        attention, mlp = layer.self_attn, layer.mlp
+        projections = (attention.q_proj, attention.k_proj, attention.v_proj)
+        assert torch.equal(block.qkv.weight, torch.cat([shard(p.weight) for p in projections]))
+        assert torch.equal(block.qkv.bias, torch.cat([shard(p.bias) for p in projections]))
+        assert torch.equal(block.gate_up.weight, torch.cat([shard(mlp.gate_proj.weight), shard(mlp.up_proj.weight)]))

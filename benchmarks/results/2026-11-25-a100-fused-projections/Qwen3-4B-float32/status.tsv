@@ -1,0 +1,5 @@
+step	exit	seconds
+Qwen3-4B-float32-before-graph	0	286
+Qwen3-4B-float32-after-eager	0	84
+Qwen3-4B-float32-after-graph	0	72
+Qwen3-4B-float32-vllm-default	0	209
