@@ -63,6 +63,12 @@ def main():
     parser.add_argument('--sdpa-backend', choices=['auto', 'math', 'efficient'], default='auto',
                         help='Pin qil attention to the backend used in numerical acceptance')
     parser.add_argument('--decode-attention', choices=['dense', 'grouped', 'paged'], default='dense')
+    parser.add_argument('--cuda-graph', action='store_true',
+                        help='qil: replay decode steps from CUDA Graphs (needs --decode-attention paged)')
+    parser.add_argument('--vllm-mode', choices=['eager', 'default'], default='eager',
+                        help='vLLM: enforce_eager=True, or its default (torch.compile + CUDA Graphs)')
+    parser.add_argument('--max-new-tokens', type=int, help='override every performance case')
+    parser.add_argument('--gpu-memory-utilization', type=float, default=0.4, help='vLLM memory share')
     args = parser.parse_args()
     if args.prepare:
         prepare(args.model, args.workload)
@@ -77,6 +83,10 @@ def main():
         parser.error('--decode-attention requires qil --batch-decode')
     if args.sdpa_backend != 'auto' and args.backend != 'qil':
         parser.error('--sdpa-backend applies only to the qil backend')
+    if args.cuda_graph and (args.backend != 'qil' or args.decode_attention != 'paged'):
+        parser.error('--cuda-graph requires qil --batch-decode --decode-attention paged')
+    if args.vllm_mode != 'eager' and args.backend != 'vllm':
+        parser.error('--vllm-mode applies only to the vllm backend')
     import torch
     from transformers import AutoTokenizer
     torch.manual_seed(0)
@@ -84,8 +94,12 @@ def main():
     torch.backends.cudnn.allow_tf32 = False
     tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True)
     workload = json.loads(args.workload.read_text())
+    if args.max_new_tokens:
+        for case in workload['performance']:
+            case['max_new_tokens'] = args.max_new_tokens
+    eager = not (args.cuda_graph or args.vllm_mode == 'default')
     config = dict(pages=256, page_size=16, token_budget=512, max_active=4,
-                  prefix_caching=False, eager=True)
+                  prefix_caching=False, eager=eager)
     if args.backend == 'qil':
         from qil import Engine, Qwen3
         model = Qwen3.from_directory(args.model, device='cuda', dtype=getattr(torch, args.dtype))
@@ -93,12 +107,16 @@ def main():
         assert eos == workload['eos_token_id'] or eos == [workload['eos_token_id']]
         engine = Engine(model, num_pages=256, page_size=16, token_budget=512,
                         prefill_chunk=128, max_active=4, batch_decode=args.batch_decode,
-                        selective_logits=args.selective_logits, decode_attention=args.decode_attention)
+                        selective_logits=args.selective_logits, decode_attention=args.decode_attention,
+                        cuda_graph=args.cuda_graph)
         config['prefill_chunk'] = 128
         config['batch_decode'] = args.batch_decode
         config['selective_logits'] = args.selective_logits
         config['sdpa_backend'] = args.sdpa_backend
         config['decode_attention'] = args.decode_attention
+        config['cuda_graph'] = args.cuda_graph
+        # The graph runner withdraws one page as the padding sink.
+        pages_after = 256 - args.cuda_graph
 
         def generate(prompts, limit, ignore_eos):
             from contextlib import nullcontext
@@ -107,18 +125,19 @@ def main():
             context = nullcontext() if args.sdpa_backend == 'auto' else sdpa_kernel(backends[args.sdpa_backend])
             with context:
                 rows = engine.generate(prompts, max_new_tokens=limit, ignore_eos=ignore_eos)
-            assert engine.idle and not engine.pool.tables and len(engine.pool.free) == 256
+            assert engine.idle and not engine.pool.tables and len(engine.pool.free) == pages_after
             assert all(row['state'] == 'completed' for row in rows)
             return [dict(token_ids=row['token_ids'], finish_reason=row['finish_reason']) for row in rows]
     else:
         from vllm import LLM, SamplingParams
         engine = LLM(model=args.model, dtype=args.dtype, seed=0, generation_config='vllm',
             max_model_len=1024, max_num_seqs=4, max_num_batched_tokens=512,
-            gpu_memory_utilization=0.4, enable_prefix_caching=False,
-            enable_chunked_prefill=True, enforce_eager=True, block_size=16,
+            gpu_memory_utilization=args.gpu_memory_utilization, enable_prefix_caching=False,
+            enable_chunked_prefill=True, enforce_eager=args.vllm_mode == 'eager', block_size=16,
             num_gpu_blocks_override=256)
         assert engine.get_tokenizer().eos_token_id == workload['eos_token_id']
         config['max_model_len'] = 1024
+        config['vllm_mode'] = args.vllm_mode
 
         def generate(prompts, limit, ignore_eos):
             sampling = SamplingParams(temperature=0, max_tokens=limit,

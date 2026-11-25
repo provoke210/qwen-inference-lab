@@ -1,0 +1,44 @@
+#!/bin/bash -l
+#PBS -N qil-vs-vllm
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=00:45:00
+#PBS -j oe
+# qil (eager / CUDA Graph) vs vLLM 0.30.0 (eager / default: torch.compile + CUDA Graphs)
+# for one model and dtype, 128 new tokens per request; all four on the same GPU.
+# Submit once per model and dtype:
+#   qsub -P <project> -v QIL_ROOT=<work dir>,QIL_MODEL=Qwen3-0.6B,QIL_DTYPE=float32[,QIL_TREE=<code dir>] <this file>
+R=${QIL_ROOT:?set QIL_ROOT to the cluster work directory}
+model=${QIL_MODEL:?set QIL_MODEL to a directory under models/}
+dtype=${QIL_DTYPE:?set QIL_DTYPE to float32 or bfloat16}
+TREE=$R/${QIL_TREE:-main}
+OUT=$R/results-vs-vllm/$model-$dtype
+module load miniforge3/25.3.1
+export LD_PRELOAD=/app/apps/miniforge3/25.3.1/lib/libstdc++.so.6
+source $R/venv-vllm/bin/activate
+export HF_HOME=$R/hf HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
+export TRITON_CACHE_DIR=$R/triton/vllm-env VLLM_CACHE_ROOT=$R/vllm-cache
+# FlashInfer's sampler fails to JIT-compile on these nodes; the workload is greedy.
+export VLLM_USE_FLASHINFER_SAMPLER=0
+rm -rf $OUT; mkdir -p $OUT
+STATUS=$OUT/status.tsv
+printf 'step\texit\tseconds\n' > $STATUS
+nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv > $OUT/environment.txt
+python -c "import torch,vllm;print('torch',torch.__version__,'vllm',vllm.__version__)" >> $OUT/environment.txt 2>&1
+run() {
+  local step=$1; shift
+  echo "RUNNING $step" > $OUT/current.txt
+  local t0=$SECONDS
+  ( cd $TREE && PYTHONPATH=$TREE timeout 900 "$@" ) > $OUT/$step.log 2>&1
+  printf '%s\t%s\t%s\n' $step $? $((SECONDS-t0)) >> $STATUS
+}
+common="python -m benchmarks.compare_independent --model $R/models/$model --workload $R/workload.json \
+  --dtype $dtype --runs 3 --max-new-tokens 128"
+qil="--backend qil --batch-decode --selective-logits --decode-attention paged"
+run $model-$dtype-qil-eager $common $qil --output $OUT/$model-$dtype-qil-eager.json
+run $model-$dtype-qil-graph $common $qil --cuda-graph --output $OUT/$model-$dtype-qil-graph.json
+run $model-$dtype-vllm-eager $common --backend vllm --gpu-memory-utilization 0.85 \
+  --output $OUT/$model-$dtype-vllm-eager.json
+run $model-$dtype-vllm-default $common --backend vllm --vllm-mode default --gpu-memory-utilization 0.85 \
+  --output $OUT/$model-$dtype-vllm-default.json
+echo DONE > $OUT/current.txt
